@@ -1,0 +1,1683 @@
+{
+  "input": {
+    "company": {
+      "name": "WATI",
+      "website": "https://www.wati.io",
+      "linkedin": "https://www.linkedin.com/company/watiglobal/"
+    },
+    "brandEntity": {
+      "category": "WhatsApp CRM",
+      "topics": [
+        "whatsapp crm",
+        "whatsapp automation",
+        "customer messaging",
+        "chatbot platform"
+      ],
+      "keywords": [
+        "whatsapp business api",
+        "whatsapp marketing",
+        "whatsapp chatbot"
+      ]
+    },
+    "competitors": [
+      "Twilio",
+      "Respond.io",
+      "Gupshup",
+      "MessageBird"
+    ],
+    "models": [
+      "gpt-4o",
+      "claude-3.5",
+      "gemini-1.5"
+    ]
+  },
+  "output": {
+    "topics": [
+      "WhatsApp CRM",
+      "WhatsApp CRM comparison",
+      "best WhatsApp CRM",
+      "best chatbot platform",
+      "best customer messaging",
+      "best whatsapp automation",
+      "best whatsapp business api",
+      "best whatsapp chatbot",
+      "best whatsapp crm",
+      "best whatsapp marketing",
+      "chatbot platform",
+      "chatbot platform for small business",
+      "chatbot platform platforms",
+      "chatbot platform software",
+      "customer messaging",
+      "customer messaging for small business",
+      "customer messaging platforms",
+      "customer messaging software",
+      "top WhatsApp CRM tools",
+      "top chatbot platform tools",
+      "top customer messaging tools",
+      "top whatsapp automation tools",
+      "top whatsapp business api tools",
+      "top whatsapp chatbot tools",
+      "top whatsapp crm tools",
+      "top whatsapp marketing tools",
+      "whatsapp automation",
+      "whatsapp automation for small business",
+      "whatsapp automation platforms",
+      "whatsapp automation software",
+      "whatsapp business api",
+      "whatsapp chatbot",
+      "whatsapp crm",
+      "whatsapp crm for small business",
+      "whatsapp crm platforms",
+      "whatsapp crm software",
+      "whatsapp marketing"
+    ],
+    "prompts": [
+      "Gupshup alternatives",
+      "Gupshup vs MessageBird",
+      "Gupshup vs WATI",
+      "MessageBird alternatives",
+      "MessageBird vs WATI",
+      "Respond.io alternatives",
+      "Respond.io vs Gupshup",
+      "Respond.io vs MessageBird",
+      "Respond.io vs WATI",
+      "Twilio alternatives",
+      "Twilio vs Gupshup",
+      "Twilio vs MessageBird",
+      "Twilio vs Respond.io",
+      "Twilio vs WATI",
+      "WhatsApp CRM",
+      "WhatsApp CRM comparison",
+      "best WhatsApp CRM",
+      "best alternatives to Gupshup",
+      "best alternatives to MessageBird",
+      "best alternatives to Respond.io",
+      "best alternatives to Twilio",
+      "best chatbot platform",
+      "best customer messaging",
+      "best whatsapp automation",
+      "best whatsapp business api",
+      "best whatsapp chatbot",
+      "best whatsapp crm",
+      "best whatsapp marketing",
+      "chatbot platform",
+      "chatbot platform for small business",
+      "chatbot platform platforms",
+      "chatbot platform software",
+      "customer messaging",
+      "customer messaging for small business",
+      "customer messaging platforms",
+      "customer messaging software",
+      "top WhatsApp CRM tools",
+      "top chatbot platform tools",
+      "top customer messaging tools",
+      "top whatsapp automation tools",
+      "top whatsapp business api tools",
+      "top whatsapp chatbot tools",
+      "top whatsapp crm tools",
+      "top whatsapp marketing tools",
+      "whatsapp automation",
+      "whatsapp automation for small business",
+      "whatsapp automation platforms",
+      "whatsapp automation software",
+      "whatsapp business api",
+      "whatsapp chatbot",
+      "whatsapp crm",
+      "whatsapp crm for small business",
+      "whatsapp crm platforms",
+      "whatsapp crm software",
+      "whatsapp marketing"
+    ],
+    "citations": [
+      {
+        "prompt": "Gupshup alternatives",
+        "model": "gpt-4o",
+        "companies": [
+          {
+            "name": "Twilio",
+            "rank": 1
+          },
+          {
+            "name": "Nexmo",
+            "rank": 2
+          },
+          {
+            "name": "MessageBird",
+            "rank": 3
+          },
+          {
+            "name": "Plivo",
+            "rank": 4
+          },
+          {
+            "name": "Sinch",
+            "rank": 5
+          }
+        ]
+      },
+      {
+        "prompt": "Gupshup vs MessageBird",
+        "model": "gpt-4o",
+        "companies": [
+          {
+            "name": "MessageBird",
+            "rank": 1
+          },
+          {
+            "name": "Gupshup",
+            "rank": 2
+          }
+        ]
+      },
+      {
+        "prompt": "Gupshup vs WATI",
+        "model": "gpt-4o",
+        "companies": [
+          {
+            "name": "WATI",
+            "rank": 1
+          },
+          {
+            "name": "Gupshup",
+            "rank": 2
+          }
+        ]
+      },
+      {
+        "prompt": "MessageBird alternatives",
+        "model": "gpt-4o",
+        "companies": [
+          {
+            "name": "Twilio",
+            "rank": 1
+          },
+          {
+            "name": "Nexmo",
+            "rank": 2
+          },
+          {
+            "name": "Plivo",
+            "rank": 3
+          },
+          {
+            "name": "Sinch",
+            "rank": 4
+          },
+          {
+            "name": "Bandwidth",
+            "rank": 5
+          },
+          {
+            "name": "Telnyx",
+            "rank": 6
+          },
+          {
+            "name": "AWS SNS",
+            "rank": 7
+          },
+          {
+            "name": "Infobip",
+            "rank": 8
+          },
+          {
+            "name": "TextMagic",
+            "rank": 9
+          },
+          {
+            "name": "ClickSend",
+            "rank": 10
+          }
+        ]
+      },
+      {
+        "prompt": "MessageBird vs WATI",
+        "model": "gpt-4o",
+        "companies": [
+          {
+            "name": "MessageBird",
+            "rank": 1
+          },
+          {
+            "name": "WATI",
+            "rank": 2
+          }
+        ]
+      },
+      {
+        "prompt": "Respond.io alternatives",
+        "model": "gpt-4o",
+        "companies": [
+          {
+            "name": "Intercom",
+            "rank": 1
+          },
+          {
+            "name": "Zendesk",
+            "rank": 2
+          },
+          {
+            "name": "Freshdesk",
+            "rank": 3
+          },
+          {
+            "name": "LiveChat",
+            "rank": 4
+          },
+          {
+            "name": "Tidio",
+            "rank": 5
+          }
+        ]
+      },
+      {
+        "prompt": "Respond.io vs Gupshup",
+        "model": "gpt-4o",
+        "companies": [
+          {
+            "name": "Respond.io",
+            "rank": 1
+          },
+          {
+            "name": "Gupshup",
+            "rank": 2
+          }
+        ]
+      },
+      {
+        "prompt": "Respond.io vs MessageBird",
+        "model": "gpt-4o",
+        "companies": [
+          {
+            "name": "MessageBird",
+            "rank": 1
+          },
+          {
+            "name": "Respond.io",
+            "rank": 2
+          }
+        ]
+      },
+      {
+        "prompt": "Respond.io vs WATI",
+        "model": "gpt-4o",
+        "companies": [
+          {
+            "name": "Respond.io",
+            "rank": 1
+          },
+          {
+            "name": "WATI",
+            "rank": 2
+          }
+        ]
+      },
+      {
+        "prompt": "Twilio alternatives",
+        "model": "gpt-4o",
+        "companies": [
+          {
+            "name": "Nexmo",
+            "rank": 1
+          },
+          {
+            "name": "Plivo",
+            "rank": 2
+          },
+          {
+            "name": "Bandwidth",
+            "rank": 3
+          },
+          {
+            "name": "MessageBird",
+            "rank": 4
+          },
+          {
+            "name": "Sinch",
+            "rank": 5
+          },
+          {
+            "name": "Telnyx",
+            "rank": 6
+          },
+          {
+            "name": "Tropo",
+            "rank": 7
+          }
+        ]
+      },
+      {
+        "prompt": "Twilio vs Gupshup",
+        "model": "gpt-4o",
+        "companies": [
+          {
+            "name": "Twilio",
+            "rank": 1
+          },
+          {
+            "name": "Gupshup",
+            "rank": 2
+          }
+        ]
+      },
+      {
+        "prompt": "Twilio vs MessageBird",
+        "model": "gpt-4o",
+        "companies": [
+          {
+            "name": "Twilio",
+            "rank": 1
+          },
+          {
+            "name": "MessageBird",
+            "rank": 2
+          }
+        ]
+      },
+      {
+        "prompt": "Twilio vs Respond.io",
+        "model": "gpt-4o",
+        "companies": [
+          {
+            "name": "Twilio",
+            "rank": 1
+          },
+          {
+            "name": "Respond.io",
+            "rank": 2
+          }
+        ]
+      },
+      {
+        "prompt": "Twilio vs WATI",
+        "model": "gpt-4o",
+        "companies": [
+          {
+            "name": "Twilio",
+            "rank": 1
+          },
+          {
+            "name": "WATI",
+            "rank": 2
+          }
+        ]
+      },
+      {
+        "prompt": "WhatsApp CRM",
+        "model": "gpt-4o",
+        "companies": [
+          {
+            "name": "HubSpot",
+            "rank": 1
+          },
+          {
+            "name": "Salesforce",
+            "rank": 2
+          },
+          {
+            "name": "Zoho CRM",
+            "rank": 3
+          },
+          {
+            "name": "MessageBird",
+            "rank": 4
+          },
+          {
+            "name": "Twilio Conversations",
+            "rank": 5
+          }
+        ]
+      },
+      {
+        "prompt": "WhatsApp CRM comparison",
+        "model": "gpt-4o",
+        "companies": [
+          {
+            "name": "HubSpot CRM",
+            "rank": 1
+          },
+          {
+            "name": "Zoho CRM",
+            "rank": 2
+          },
+          {
+            "name": "Salesforce",
+            "rank": 3
+          },
+          {
+            "name": "Pipedrive",
+            "rank": 4
+          },
+          {
+            "name": "Freshworks CRM",
+            "rank": 5
+          }
+        ]
+      },
+      {
+        "prompt": "best WhatsApp CRM",
+        "model": "gpt-4o",
+        "companies": [
+          {
+            "name": "HubSpot CRM",
+            "rank": 1
+          },
+          {
+            "name": "Zoho CRM",
+            "rank": 2
+          },
+          {
+            "name": "Salesforce",
+            "rank": 3
+          },
+          {
+            "name": "Freshsales",
+            "rank": 4
+          },
+          {
+            "name": "Zendesk Sell",
+            "rank": 5
+          }
+        ]
+      },
+      {
+        "prompt": "best alternatives to Gupshup",
+        "model": "gpt-4o",
+        "companies": [
+          {
+            "name": "Twilio",
+            "rank": 1
+          },
+          {
+            "name": "Nexmo",
+            "rank": 2
+          },
+          {
+            "name": "MessageBird",
+            "rank": 3
+          },
+          {
+            "name": "Sinch",
+            "rank": 4
+          },
+          {
+            "name": "Plivo",
+            "rank": 5
+          }
+        ]
+      },
+      {
+        "prompt": "best alternatives to MessageBird",
+        "model": "gpt-4o",
+        "companies": [
+          {
+            "name": "Twilio",
+            "rank": 1
+          },
+          {
+            "name": "Vonage API",
+            "rank": 2
+          },
+          {
+            "name": "Plivo",
+            "rank": 3
+          },
+          {
+            "name": "Sinch",
+            "rank": 4
+          },
+          {
+            "name": "Telesign",
+            "rank": 5
+          }
+        ]
+      },
+      {
+        "prompt": "best alternatives to Respond.io",
+        "model": "gpt-4o",
+        "companies": [
+          {
+            "name": "HubSpot",
+            "rank": 1
+          },
+          {
+            "name": "Freshdesk",
+            "rank": 2
+          },
+          {
+            "name": "Zendesk",
+            "rank": 3
+          },
+          {
+            "name": "Intercom",
+            "rank": 4
+          },
+          {
+            "name": "Drift",
+            "rank": 5
+          },
+          {
+            "name": "Zoho Desk",
+            "rank": 6
+          },
+          {
+            "name": "LiveChat",
+            "rank": 7
+          },
+          {
+            "name": "Tawk.to",
+            "rank": 8
+          }
+        ]
+      },
+      {
+        "prompt": "best alternatives to Twilio",
+        "model": "gpt-4o",
+        "companies": [
+          {
+            "name": "Nexmo",
+            "rank": 1
+          },
+          {
+            "name": "Plivo",
+            "rank": 2
+          },
+          {
+            "name": "Bandwidth",
+            "rank": 3
+          },
+          {
+            "name": "Vonage",
+            "rank": 4
+          },
+          {
+            "name": "Sinch",
+            "rank": 5
+          }
+        ]
+      },
+      {
+        "prompt": "best chatbot platform",
+        "model": "gpt-4o",
+        "companies": [
+          {
+            "name": "ChatGPT by OpenAI",
+            "rank": 1
+          },
+          {
+            "name": "Dialogflow by Google",
+            "rank": 2
+          },
+          {
+            "name": "IBM Watson Assistant",
+            "rank": 3
+          },
+          {
+            "name": "Microsoft Bot Framework",
+            "rank": 4
+          },
+          {
+            "name": "Rasa",
+            "rank": 5
+          },
+          {
+            "name": "LiveChat",
+            "rank": 6
+          },
+          {
+            "name": "Drift",
+            "rank": 7
+          }
+        ]
+      },
+      {
+        "prompt": "best customer messaging",
+        "model": "gpt-4o",
+        "companies": [
+          {
+            "name": "Intercom",
+            "rank": 1
+          },
+          {
+            "name": "Zendesk",
+            "rank": 2
+          },
+          {
+            "name": "Drift",
+            "rank": 3
+          },
+          {
+            "name": "HubSpot",
+            "rank": 4
+          },
+          {
+            "name": "Freshchat",
+            "rank": 5
+          }
+        ]
+      },
+      {
+        "prompt": "best whatsapp automation",
+        "model": "gpt-4o",
+        "companies": [
+          {
+            "name": "Twilio",
+            "rank": 1
+          },
+          {
+            "name": "WATI",
+            "rank": 2
+          },
+          {
+            "name": "Zapier",
+            "rank": 3
+          },
+          {
+            "name": "MessageBird",
+            "rank": 4
+          },
+          {
+            "name": "Tyntec",
+            "rank": 5
+          }
+        ]
+      },
+      {
+        "prompt": "best whatsapp business api",
+        "model": "gpt-4o",
+        "companies": [
+          {
+            "name": "Twilio",
+            "rank": 1
+          },
+          {
+            "name": "MessageBird",
+            "rank": 2
+          },
+          {
+            "name": "Vonage",
+            "rank": 3
+          },
+          {
+            "name": "360dialog",
+            "rank": 4
+          },
+          {
+            "name": "Tyntec",
+            "rank": 5
+          }
+        ]
+      },
+      {
+        "prompt": "best whatsapp chatbot",
+        "model": "gpt-4o",
+        "companies": [
+          {
+            "name": "WhatsApp Business API",
+            "rank": 1
+          },
+          {
+            "name": "Twilio",
+            "rank": 2
+          },
+          {
+            "name": "WATI",
+            "rank": 3
+          },
+          {
+            "name": "Landbot",
+            "rank": 4
+          },
+          {
+            "name": "Tars",
+            "rank": 5
+          }
+        ]
+      },
+      {
+        "prompt": "best whatsapp crm",
+        "model": "gpt-4o",
+        "companies": [
+          {
+            "name": "HubSpot CRM",
+            "rank": 1
+          },
+          {
+            "name": "Zoho CRM",
+            "rank": 2
+          },
+          {
+            "name": "Salesforce",
+            "rank": 3
+          },
+          {
+            "name": "Freshworks CRM",
+            "rank": 4
+          },
+          {
+            "name": "WATI",
+            "rank": 5
+          },
+          {
+            "name": "Pipedrive",
+            "rank": 6
+          }
+        ]
+      },
+      {
+        "prompt": "best whatsapp marketing",
+        "model": "gpt-4o",
+        "companies": [
+          {
+            "name": "Twilio",
+            "rank": 1
+          },
+          {
+            "name": "MessageBird",
+            "rank": 2
+          },
+          {
+            "name": "Sendinblue",
+            "rank": 3
+          },
+          {
+            "name": "Netcore",
+            "rank": 4
+          },
+          {
+            "name": "Vepaar",
+            "rank": 5
+          }
+        ]
+      },
+      {
+        "prompt": "chatbot platform",
+        "model": "gpt-4o",
+        "companies": [
+          {
+            "name": "ChatGPT by OpenAI",
+            "rank": 1
+          },
+          {
+            "name": "Dialogflow by Google",
+            "rank": 2
+          },
+          {
+            "name": "IBM Watson Assistant",
+            "rank": 3
+          },
+          {
+            "name": "Microsoft Bot Framework",
+            "rank": 4
+          },
+          {
+            "name": "Amazon Lex",
+            "rank": 5
+          }
+        ]
+      },
+      {
+        "prompt": "chatbot platform for small business",
+        "model": "gpt-4o",
+        "companies": [
+          {
+            "name": "Tidio",
+            "rank": 1
+          },
+          {
+            "name": "ManyChat",
+            "rank": 2
+          },
+          {
+            "name": "Chatfuel",
+            "rank": 3
+          },
+          {
+            "name": "LiveChat",
+            "rank": 4
+          },
+          {
+            "name": "Drift",
+            "rank": 5
+          }
+        ]
+      },
+      {
+        "prompt": "chatbot platform platforms",
+        "model": "gpt-4o",
+        "companies": [
+          {
+            "name": "Dialogflow",
+            "rank": 1
+          },
+          {
+            "name": "Microsoft Bot Framework",
+            "rank": 2
+          },
+          {
+            "name": "IBM Watson Assistant",
+            "rank": 3
+          },
+          {
+            "name": "Rasa",
+            "rank": 4
+          },
+          {
+            "name": "Chatfuel",
+            "rank": 5
+          },
+          {
+            "name": "Tidio",
+            "rank": 6
+          },
+          {
+            "name": "ManyChat",
+            "rank": 7
+          },
+          {
+            "name": "Drift",
+            "rank": 8
+          }
+        ]
+      },
+      {
+        "prompt": "chatbot platform software",
+        "model": "gpt-4o",
+        "companies": [
+          {
+            "name": "Dialogflow",
+            "rank": 1
+          },
+          {
+            "name": "Microsoft Bot Framework",
+            "rank": 2
+          },
+          {
+            "name": "Rasa",
+            "rank": 3
+          },
+          {
+            "name": "IBM Watson Assistant",
+            "rank": 4
+          },
+          {
+            "name": "Chatfuel",
+            "rank": 5
+          }
+        ]
+      },
+      {
+        "prompt": "customer messaging",
+        "model": "gpt-4o",
+        "companies": [
+          {
+            "name": "Intercom",
+            "rank": 1
+          },
+          {
+            "name": "Zendesk",
+            "rank": 2
+          },
+          {
+            "name": "Drift",
+            "rank": 3
+          },
+          {
+            "name": "HubSpot",
+            "rank": 4
+          },
+          {
+            "name": "Freshdesk",
+            "rank": 5
+          }
+        ]
+      },
+      {
+        "prompt": "customer messaging for small business",
+        "model": "gpt-4o",
+        "companies": [
+          {
+            "name": "Intercom",
+            "rank": 1
+          },
+          {
+            "name": "Zendesk",
+            "rank": 2
+          },
+          {
+            "name": "HubSpot",
+            "rank": 3
+          },
+          {
+            "name": "Freshdesk",
+            "rank": 4
+          },
+          {
+            "name": "Drift",
+            "rank": 5
+          }
+        ]
+      },
+      {
+        "prompt": "customer messaging platforms",
+        "model": "gpt-4o",
+        "companies": [
+          {
+            "name": "Intercom",
+            "rank": 1
+          },
+          {
+            "name": "Zendesk",
+            "rank": 2
+          },
+          {
+            "name": "Salesforce Service Cloud",
+            "rank": 3
+          },
+          {
+            "name": "Freshdesk",
+            "rank": 4
+          },
+          {
+            "name": "Drift",
+            "rank": 5
+          },
+          {
+            "name": "LiveChat",
+            "rank": 6
+          },
+          {
+            "name": "HubSpot Service Hub",
+            "rank": 7
+          },
+          {
+            "name": "Twilio",
+            "rank": 8
+          },
+          {
+            "name": "Tidio",
+            "rank": 9
+          },
+          {
+            "name": "Help Scout",
+            "rank": 10
+          }
+        ]
+      },
+      {
+        "prompt": "customer messaging software",
+        "model": "gpt-4o",
+        "companies": [
+          {
+            "name": "Zendesk",
+            "rank": 1
+          },
+          {
+            "name": "Intercom",
+            "rank": 2
+          },
+          {
+            "name": "Twilio",
+            "rank": 3
+          },
+          {
+            "name": "LiveChat",
+            "rank": 4
+          },
+          {
+            "name": "Freshdesk",
+            "rank": 5
+          },
+          {
+            "name": "Drift",
+            "rank": 6
+          },
+          {
+            "name": "HubSpot",
+            "rank": 7
+          },
+          {
+            "name": "Front",
+            "rank": 8
+          },
+          {
+            "name": "Help Scout",
+            "rank": 9
+          },
+          {
+            "name": "User.com",
+            "rank": 10
+          }
+        ]
+      },
+      {
+        "prompt": "top WhatsApp CRM tools",
+        "model": "gpt-4o",
+        "companies": [
+          {
+            "name": "HubSpot",
+            "rank": 1
+          },
+          {
+            "name": "Zoho CRM",
+            "rank": 2
+          },
+          {
+            "name": "Salesforce",
+            "rank": 3
+          },
+          {
+            "name": "Freshworks CRM",
+            "rank": 4
+          },
+          {
+            "name": "Zendesk Sell",
+            "rank": 5
+          }
+        ]
+      },
+      {
+        "prompt": "top chatbot platform tools",
+        "model": "gpt-4o",
+        "companies": [
+          {
+            "name": "Dialogflow",
+            "rank": 1
+          },
+          {
+            "name": "Microsoft Bot Framework",
+            "rank": 2
+          },
+          {
+            "name": "IBM Watson Assistant",
+            "rank": 3
+          },
+          {
+            "name": "Amazon Lex",
+            "rank": 4
+          },
+          {
+            "name": "Rasa",
+            "rank": 5
+          },
+          {
+            "name": "Chatfuel",
+            "rank": 6
+          },
+          {
+            "name": "Botsify",
+            "rank": 7
+          },
+          {
+            "name": "ManyChat",
+            "rank": 8
+          },
+          {
+            "name": "MobileMonkey",
+            "rank": 9
+          },
+          {
+            "name": "Tars",
+            "rank": 10
+          }
+        ]
+      },
+      {
+        "prompt": "top customer messaging tools",
+        "model": "gpt-4o",
+        "companies": [
+          {
+            "name": "Intercom",
+            "rank": 1
+          },
+          {
+            "name": "Zendesk",
+            "rank": 2
+          },
+          {
+            "name": "Drift",
+            "rank": 3
+          },
+          {
+            "name": "Freshdesk",
+            "rank": 4
+          },
+          {
+            "name": "HubSpot Chat",
+            "rank": 5
+          },
+          {
+            "name": "LiveChat",
+            "rank": 6
+          },
+          {
+            "name": "Crisp",
+            "rank": 7
+          },
+          {
+            "name": "Salesforce Service Cloud",
+            "rank": 8
+          },
+          {
+            "name": "Hootsuite Inbox",
+            "rank": 9
+          },
+          {
+            "name": "Front",
+            "rank": 10
+          }
+        ]
+      },
+      {
+        "prompt": "top whatsapp automation tools",
+        "model": "gpt-4o",
+        "companies": [
+          {
+            "name": "WATI",
+            "rank": 1
+          },
+          {
+            "name": "Twilio",
+            "rank": 2
+          },
+          {
+            "name": "WhatsAuto",
+            "rank": 3
+          },
+          {
+            "name": "Callbell",
+            "rank": 4
+          },
+          {
+            "name": "Zoko",
+            "rank": 5
+          }
+        ]
+      },
+      {
+        "prompt": "top whatsapp business api tools",
+        "model": "gpt-4o",
+        "companies": [
+          {
+            "name": "Twilio",
+            "rank": 1
+          },
+          {
+            "name": "MessageBird",
+            "rank": 2
+          },
+          {
+            "name": "Vonage",
+            "rank": 3
+          },
+          {
+            "name": "360dialog",
+            "rank": 4
+          },
+          {
+            "name": "WATI",
+            "rank": 5
+          },
+          {
+            "name": "Tyntec",
+            "rank": 6
+          },
+          {
+            "name": "Infobip",
+            "rank": 7
+          }
+        ]
+      },
+      {
+        "prompt": "top whatsapp chatbot tools",
+        "model": "gpt-4o",
+        "companies": [
+          {
+            "name": "Twilio",
+            "rank": 1
+          },
+          {
+            "name": "ChatGPT",
+            "rank": 2
+          },
+          {
+            "name": "Zendesk",
+            "rank": 3
+          },
+          {
+            "name": "Landbot",
+            "rank": 4
+          },
+          {
+            "name": "Tars",
+            "rank": 5
+          },
+          {
+            "name": "Botsify",
+            "rank": 6
+          },
+          {
+            "name": "MobileMonkey",
+            "rank": 7
+          },
+          {
+            "name": "ManyChat",
+            "rank": 8
+          }
+        ]
+      },
+      {
+        "prompt": "top whatsapp crm tools",
+        "model": "gpt-4o",
+        "companies": [
+          {
+            "name": "HubSpot",
+            "rank": 1
+          },
+          {
+            "name": "Zoho CRM",
+            "rank": 2
+          },
+          {
+            "name": "Twilio",
+            "rank": 3
+          },
+          {
+            "name": "Respond.io",
+            "rank": 4
+          },
+          {
+            "name": "Freshworks CRM",
+            "rank": 5
+          }
+        ]
+      },
+      {
+        "prompt": "top whatsapp marketing tools",
+        "model": "gpt-4o",
+        "companies": [
+          {
+            "name": "WATI",
+            "rank": 1
+          },
+          {
+            "name": "Twilio",
+            "rank": 2
+          },
+          {
+            "name": "Zoko",
+            "rank": 3
+          },
+          {
+            "name": "Trengo",
+            "rank": 4
+          },
+          {
+            "name": "Callbell",
+            "rank": 5
+          }
+        ]
+      },
+      {
+        "prompt": "whatsapp automation",
+        "model": "gpt-4o",
+        "companies": [
+          {
+            "name": "Twilio",
+            "rank": 1
+          },
+          {
+            "name": "Infobip",
+            "rank": 2
+          },
+          {
+            "name": "MessageBird",
+            "rank": 3
+          },
+          {
+            "name": "WATI",
+            "rank": 4
+          },
+          {
+            "name": "tyntec",
+            "rank": 5
+          }
+        ]
+      },
+      {
+        "prompt": "whatsapp automation for small business",
+        "model": "gpt-4o",
+        "companies": [
+          {
+            "name": "Twilio",
+            "rank": 1
+          },
+          {
+            "name": "Zapier",
+            "rank": 2
+          },
+          {
+            "name": "WATI",
+            "rank": 3
+          },
+          {
+            "name": "MessageBird",
+            "rank": 4
+          },
+          {
+            "name": "WaBetaInfo",
+            "rank": 5
+          }
+        ]
+      },
+      {
+        "prompt": "whatsapp automation platforms",
+        "model": "gpt-4o",
+        "companies": [
+          {
+            "name": "Twilio",
+            "rank": 1
+          },
+          {
+            "name": "WATI",
+            "rank": 2
+          },
+          {
+            "name": "Landbot",
+            "rank": 3
+          },
+          {
+            "name": "Callbell",
+            "rank": 4
+          },
+          {
+            "name": "AiSensy",
+            "rank": 5
+          },
+          {
+            "name": "360dialog",
+            "rank": 6
+          },
+          {
+            "name": "MessageBird",
+            "rank": 7
+          },
+          {
+            "name": "Yalo",
+            "rank": 8
+          },
+          {
+            "name": "Kaleyra",
+            "rank": 9
+          },
+          {
+            "name": "CM.com",
+            "rank": 10
+          }
+        ]
+      },
+      {
+        "prompt": "whatsapp automation software",
+        "model": "gpt-4o",
+        "companies": [
+          {
+            "name": "Twilio",
+            "rank": 1
+          },
+          {
+            "name": "WATI",
+            "rank": 2
+          },
+          {
+            "name": "Zoko",
+            "rank": 3
+          },
+          {
+            "name": "Landbot",
+            "rank": 4
+          },
+          {
+            "name": "Callbell",
+            "rank": 5
+          }
+        ]
+      },
+      {
+        "prompt": "whatsapp business api",
+        "model": "gpt-4o",
+        "companies": [
+          {
+            "name": "Twilio",
+            "rank": 1
+          },
+          {
+            "name": "MessageBird",
+            "rank": 2
+          },
+          {
+            "name": "Vonage",
+            "rank": 3
+          },
+          {
+            "name": "360dialog",
+            "rank": 4
+          },
+          {
+            "name": "WATI",
+            "rank": 5
+          }
+        ]
+      },
+      {
+        "prompt": "whatsapp chatbot",
+        "model": "gpt-4o",
+        "companies": [
+          {
+            "name": "Landbot",
+            "rank": 1
+          },
+          {
+            "name": "Twilio",
+            "rank": 2
+          },
+          {
+            "name": "Chatfuel",
+            "rank": 3
+          },
+          {
+            "name": "ManyChat",
+            "rank": 4
+          },
+          {
+            "name": "Botsify",
+            "rank": 5
+          }
+        ]
+      },
+      {
+        "prompt": "whatsapp crm",
+        "model": "gpt-4o",
+        "companies": [
+          {
+            "name": "HubSpot",
+            "rank": 1
+          },
+          {
+            "name": "Salesforce",
+            "rank": 2
+          },
+          {
+            "name": "Zendesk",
+            "rank": 3
+          },
+          {
+            "name": "Zoho CRM",
+            "rank": 4
+          },
+          {
+            "name": "Twilio Conversations",
+            "rank": 5
+          }
+        ]
+      },
+      {
+        "prompt": "whatsapp crm for small business",
+        "model": "gpt-4o",
+        "companies": [
+          {
+            "name": "WhatsApp Business API",
+            "rank": 1
+          },
+          {
+            "name": "HubSpot CRM",
+            "rank": 2
+          },
+          {
+            "name": "Zoho CRM",
+            "rank": 3
+          },
+          {
+            "name": "Sendinblue",
+            "rank": 4
+          },
+          {
+            "name": "Twilio",
+            "rank": 5
+          },
+          {
+            "name": "Trengo",
+            "rank": 6
+          },
+          {
+            "name": "Freshworks CRM",
+            "rank": 7
+          },
+          {
+            "name": "SleekFlow",
+            "rank": 8
+          },
+          {
+            "name": "Pipedrive",
+            "rank": 9
+          },
+          {
+            "name": "Respond.io",
+            "rank": 10
+          }
+        ]
+      },
+      {
+        "prompt": "whatsapp crm platforms",
+        "model": "gpt-4o",
+        "companies": [
+          {
+            "name": "WhatsApp Business API",
+            "rank": 1
+          },
+          {
+            "name": "Twilio",
+            "rank": 2
+          },
+          {
+            "name": "MessageBird",
+            "rank": 3
+          },
+          {
+            "name": "Freshworks CRM",
+            "rank": 4
+          },
+          {
+            "name": "HubSpot CRM",
+            "rank": 5
+          },
+          {
+            "name": "Zendesk Sell",
+            "rank": 6
+          },
+          {
+            "name": "Salesforce",
+            "rank": 7
+          },
+          {
+            "name": "Zoho CRM",
+            "rank": 8
+          },
+          {
+            "name": "Infobip",
+            "rank": 9
+          },
+          {
+            "name": "REVE Chat",
+            "rank": 10
+          }
+        ]
+      },
+      {
+        "prompt": "whatsapp crm software",
+        "model": "gpt-4o",
+        "companies": [
+          {
+            "name": "HubSpot",
+            "rank": 1
+          },
+          {
+            "name": "Salesforce",
+            "rank": 2
+          },
+          {
+            "name": "Zoho CRM",
+            "rank": 3
+          },
+          {
+            "name": "Freshsales",
+            "rank": 4
+          },
+          {
+            "name": "Pipedrive",
+            "rank": 5
+          }
+        ]
+      },
+      {
+        "prompt": "whatsapp marketing",
+        "model": "gpt-4o",
+        "companies": [
+          {
+            "name": "WhatsApp Business API",
+            "rank": 1
+          },
+          {
+            "name": "Twilio",
+            "rank": 2
+          },
+          {
+            "name": "MessageBird",
+            "rank": 3
+          },
+          {
+            "name": "Vepaar",
+            "rank": 4
+          },
+          {
+            "name": "WATI",
+            "rank": 5
+          },
+          {
+            "name": "Sirena",
+            "rank": 6
+          },
+          {
+            "name": "Callbell",
+            "rank": 7
+          }
+        ]
+      }
+    ],
+    "metrics": {
+      "share_of_voice": 5.3,
+      "top3_rate": 20.0,
+      "query_coverage": 29.1,
+      "competitor_rank": 2.8,
+      "topic_authority": 5.0
+    }
+  }
+}

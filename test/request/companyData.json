@@ -1,0 +1,150 @@
+
+{
+  "success": true,
+  "companyId": "cmlzjvjrl0000kkl5v487mi48",
+  "data": {
+    "company": {
+      "id": "cmlzjvjrl0000kkl5v487mi48",
+      "name": "MoonFlare",
+      "slug": "moonflare",
+      "description": "MoonFlare company",
+      "logoUrl": null,
+      "website": "https://www.google.com/",
+      "email": "admin@moonflare.com",
+      "createdAt": "2026-02-23T19:08:59.983Z",
+      "updatedAt": "2026-03-04T17:48:39.358Z"
+    },
+    "brandEntity": {
+      "id": "cmmcc3iaz000cgfl5hwbjh1yp",
+      "companyId": "cmlzjvjrl0000kkl5v487mi48",
+      "canonicalName": "Moonflare",
+      "aliases": [],
+      "entityType": "Organization",
+      "oneLiner": "Edge Compute Company",
+      "about": "Moonflare is a global edge compute provider focused on ultra low-latency delivery. It offers a tiered pricing model based on compute duration and request volume, with SOC 2 Type II compliance and industry-standard security practices.",
+      "industry": "SaaS",
+      "category": "Edge Compute",
+      "headquartersCity": "Patna",
+      "headquartersCountry": "India",
+      "foundedYear": 2022,
+      "employeeRange": "1-20",
+      "businessModel": "B2B",
+      "topics": [
+        "global edge compute provider"
+      ],
+      "keywords": [
+        "global edge compute provider"
+      ],
+      "targetAudiences": [],
+      "authorityScore": null,
+      "citationCount": 0,
+      "lastCrawledAt": null,
+      "completenessScore": 0,
+      "lastEnrichedAt": null,
+      "enrichmentSource": null,
+      "createdAt": "2026-03-04T17:52:14.696Z",
+      "updatedAt": "2026-03-04T17:52:14.696Z"
+    },
+    "offerings": [
+      {
+        "id": "cmmcc67vn000dgfl5qkag3kg2",
+        "entityId": "cmmcc3iaz000cgfl5hwbjh1yp",
+        "name": "global edge compute provider",
+        "slug": "global-edge-compute-provider",
+        "description": "global edge compute provider",
+        "offeringType": "SERVICE",
+        "url": null,
+        "keywords": [],
+        "useCases": [],
+        "targetAudiences": [],
+        "differentiators": [
+          "global edge compute provider in india"
+        ],
+        "competitors": [
+          "cloudfare"
+        ],
+        "isPrimary": true,
+        "isActive": true,
+        "createdAt": "2026-03-04T17:54:21.155Z",
+        "updatedAt": "2026-03-04T17:54:21.155Z"
+      }
+    ],
+    "branding": null,
+    "dataSources": [
+      {
+        "id": "cmmc8z879000bgfl5u97n3k1k",
+        "companyId": "cmlzjvjrl0000kkl5v487mi48",
+        "sourceType": "FILE",
+        "label": "JD.pdf",
+        "assetId": "cmmc8z7d3000agfl5i6b9k6p3",
+        "rawContent": null,
+        "processedContent": null,
+        "isActive": true,
+        "createdAt": "2026-03-04T16:24:56.133Z",
+        "updatedAt": "2026-03-04T16:24:56.133Z",
+        "asset": {
+          "id": "cmmc8z7d3000agfl5i6b9k6p3",
+          "assetType": "DOCUMENT",
+          "title": "JD",
+          "filename": "JD.pdf",
+          "status": "READY",
+          "thumbnailUrl": null,
+          "playbackUrl": null,
+          "duration": null,
+          "resolution": null,
+          "createdAt": "2026-03-04T16:24:55.047Z"
+        }
+      },
+      {
+        "id": "cmmc8gjwa0008gfl5j1umz0bu",
+        "companyId": "cmlzjvjrl0000kkl5v487mi48",
+        "sourceType": "FILE",
+        "label": "Prod Tutorial",
+        "assetId": "cmmc8gice0006gfl5dl36tkhl",
+        "rawContent": null,
+        "processedContent": null,
+        "isActive": true,
+        "createdAt": "2026-03-04T16:10:24.825Z",
+        "updatedAt": "2026-03-04T16:10:24.825Z",
+        "asset": {
+          "id": "cmmc8gice0006gfl5dl36tkhl",
+          "assetType": "VIDEO",
+          "title": "Bloodless%20Killings%3A%20The%20Dexter%20Advantage",
+          "filename": "Bloodless%20Killings%3A%20The%20Dexter%20Advantage.mp4",
+          "status": "READY",
+          "thumbnailUrl": "https://customer-5f6vfk6lgnhsk276.cloudflarestream.com/0d2fa212c27bca0cf47f3f79db83afc8/thumbnails/thumbnail.jpg",
+          "playbackUrl": "https://customer-5f6vfk6lgnhsk276.cloudflarestream.com/0d2fa212c27bca0cf47f3f79db83afc8/manifest/video.m3u8",
+          "duration": -1,
+          "resolution": "-1x-1",
+          "createdAt": "2026-03-04T16:10:22.814Z"
+        }
+      },
+      {
+        "id": "cmmc8d6ti0004gfl53xauuw9x",
+        "companyId": "cmlzjvjrl0000kkl5v487mi48",
+        "sourceType": "URL",
+        "label": "Prod KP",
+        "assetId": null,
+        "rawContent": "helloworld.com",
+        "processedContent": null,
+        "isActive": true,
+        "createdAt": "2026-03-04T16:07:47.910Z",
+        "updatedAt": "2026-03-04T16:07:47.910Z",
+        "asset": null
+      },
+      {
+        "id": "cmmc8ci570003gfl549yjmkpv",
+        "companyId": "cmlzjvjrl0000kkl5v487mi48",
+        "sourceType": "TEXT",
+        "label": "Prod Docs",
+        "assetId": null,
+        "rawContent": "Hello World",
+        "processedContent": null,
+        "isActive": true,
+        "createdAt": "2026-03-04T16:07:15.931Z",
+        "updatedAt": "2026-03-04T16:07:15.931Z",
+        "asset": null
+      }
+    ]
+  }
+}

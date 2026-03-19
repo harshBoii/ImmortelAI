@@ -1,0 +1,158 @@
+{
+    "niches": [
+        {
+            "topic": "Leveraging WhatsApp CRM for E-commerce Growth",
+            "description": "This niche focuses on how e-commerce businesses can utilize WhatsApp CRM to enhance customer engagement and drive sales.",
+            "prompts": [
+                "How can I use WhatsApp CRM to boost sales for my e-commerce store?",
+                "What are the best practices for customer engagement using WhatsApp CRM in e-commerce?",
+                "WhatsApp CRM vs. traditional email marketing: Which is better for e-commerce?",
+                "What are some successful use cases of e-commerce businesses using WhatsApp CRM?",
+                "What are the pros and cons of integrating WhatsApp CRM into an online shop?",
+                "How can I set up automated responses on WhatsApp CRM for my e-commerce site?",
+                "What features should I look for in a WhatsApp CRM for e-commerce?",
+                "How effective is WhatsApp marketing compared to other CRM tools for e-commerce growth?"
+            ],
+            "prompt_count": 8
+        },
+        {
+            "topic": "Automating Customer Support with WhatsApp Chatbots",
+            "description": "This topic explores the benefits and strategies for implementing chatbots on WhatsApp to streamline customer support.",
+            "prompts": [
+                "What are the benefits of using WhatsApp chatbots for customer support?",
+                "How do I set up a WhatsApp chatbot to automate customer service?",
+                "What are the best practices for designing an effective WhatsApp chatbot?",
+                "How does WhatsApp chatbot support compare to traditional customer service methods?",
+                "What are the most common use cases for implementing WhatsApp chatbots in customer support?",
+                "What are the pros and cons of using chatbots on WhatsApp for customer interaction?",
+                "Which industries benefit the most from WhatsApp chatbots for customer support?",
+                "How can I measure the effectiveness of my WhatsApp chatbot in improving customer support?"
+            ],
+            "prompt_count": 8
+        },
+        {
+            "topic": "WhatsApp Marketing Strategies for Local Businesses",
+            "description": "This niche provides insights on how local businesses can effectively use WhatsApp for targeted marketing campaigns.",
+            "prompts": [
+                "What are the best WhatsApp marketing strategies for local businesses?",
+                "How can local businesses use WhatsApp for customer engagement?",
+                "What are the pros and cons of using WhatsApp as a marketing tool for small businesses?",
+                "How do I set up a WhatsApp Business account for my local shop?",
+                "What types of content work best for WhatsApp marketing campaigns?",
+                "How can local restaurants leverage WhatsApp for promotions and bookings?",
+                "What are the key differences between WhatsApp and traditional SMS marketing for local businesses?",
+                "Can WhatsApp be used effectively for customer support in local businesses?"
+            ],
+            "prompt_count": 8
+        },
+        {
+            "topic": "Integrating WhatsApp Business API with Existing CRMs",
+            "description": "This topic helps organizations understand how to seamlessly integrate WhatsApp Business API with their current CRM systems.",
+            "prompts": [
+                "How to integrate WhatsApp Business API with Salesforce CRM?",
+                "What are the benefits of using WhatsApp Business API in a CRM system?",
+                "Which CRM platforms are compatible with WhatsApp Business API?",
+                "What are common challenges when integrating WhatsApp Business API with existing CRMs?",
+                "Can I use WhatsApp Business API with multiple CRM systems at once?",
+                "How does WhatsApp Business API improve customer engagement in CRM?",
+                "What are the best practices for managing customer interactions through WhatsApp in a CRM?",
+                "Is it worth the investment to integrate WhatsApp Business API into my existing CRM system?"
+            ],
+            "prompt_count": 8
+        },
+        {
+            "topic": "Case Studies: Successful WhatsApp Automation Implementation",
+            "description": "This niche presents real-life examples of companies that successfully implemented WhatsApp automation, showcasing best practices and results.",
+            "prompts": [
+                "What are some successful case studies of WhatsApp automation implementation?",
+                "How can businesses benefit from automating WhatsApp communications?",
+                "What are the best practices for implementing WhatsApp automation in customer support?",
+                "Can you compare the results of WhatsApp automation versus traditional customer service methods?",
+                "What are the pros and cons of using WhatsApp for business automation?",
+                "How did specific companies increase their customer engagement with WhatsApp automation?",
+                "What features should a WhatsApp automation tool have for optimal results?",
+                "What industries have seen the most success with WhatsApp automation strategies?"
+            ],
+            "prompt_count": 8
+        },
+        {
+            "topic": "Creating Conversational Marketing Funnels on WhatsApp",
+            "description": "This topic dives into the creation of effective conversational marketing funnels using WhatsApp to increase customer conversions.",
+            "prompts": [
+                "How to create a conversational marketing funnel on WhatsApp?",
+                "What are the best practices for WhatsApp conversational marketing funnels?",
+                "Comparing WhatsApp and traditional channels for marketing funnels: which is more effective?",
+                "What are the key components of an effective WhatsApp marketing funnel?",
+                "How to measure the success of a conversational marketing funnel on WhatsApp?",
+                "What are the pros and cons of using WhatsApp for conversational marketing?",
+                "Can small businesses benefit from creating a marketing funnel on WhatsApp?",
+                "What tools can help optimize WhatsApp conversational marketing funnels?"
+            ],
+            "prompt_count": 8
+        },
+        {
+            "topic": "Optimizing Response Times with WhatsApp Automation Tools",
+            "description": "This niche highlights strategies to enhance responsiveness in customer service through WhatsApp automation tools.",
+            "prompts": [
+                "What are the best WhatsApp automation tools for improving customer response times?",
+                "How can I set up WhatsApp automation to enhance my customer service responsiveness?",
+                "What are the advantages and disadvantages of using WhatsApp automation for customer support?",
+                "How do different WhatsApp CRM tools compare in terms of response time optimization features?",
+                "Can WhatsApp automation help reduce response times during peak business hours?",
+                "What are some effective use cases of WhatsApp automation in customer service?",
+                "How to analyze the impact of WhatsApp automation on response times in customer interactions?",
+                "What features should I look for in a WhatsApp CRM to ensure quick customer response times?"
+            ],
+            "prompt_count": 8
+        },
+        {
+            "topic": "Emerging Trends in WhatsApp Messaging for Businesses",
+            "description": "This topic analyzes the latest trends in WhatsApp messaging that businesses should consider to stay competitive.",
+            "prompts": [
+                "What are the latest trends in WhatsApp messaging for businesses in 2023?",
+                "How can small businesses effectively use WhatsApp for customer engagement?",
+                "What are the pros and cons of integrating WhatsApp into my business communication strategy?",
+                "Which industries are seeing the most success with WhatsApp messaging?",
+                "How do WhatsApp chatbots enhance customer service for businesses?",
+                "What features should businesses prioritize when using WhatsApp for marketing?",
+                "How can I compare WhatsApp messaging with other customer communication tools?",
+                "What are some real-world use cases of WhatsApp in e-commerce businesses?"
+            ],
+            "prompt_count": 8
+        },
+        {
+            "topic": "WhatsApp Compliance: Navigating Business Regulations",
+            "description": "This niche offers guidance on legal compliance for businesses using WhatsApp CRM and marketing strategies.",
+            "prompts": [
+                "What are the key WhatsApp compliance regulations for businesses in 2023?",
+                "How can businesses ensure compliance with WhatsApp marketing rules?",
+                "What are the pros and cons of using WhatsApp for customer communication?",
+                "Which industries face the most challenges with WhatsApp compliance?",
+                "What steps should businesses take to avoid compliance violations on WhatsApp?",
+                "How does WhatsApp business compliance differ from other messaging platforms?",
+                "What are the best practices for using WhatsApp CRM while staying compliant?",
+                "Can businesses use WhatsApp for marketing in countries with strict data privacy laws?"
+            ],
+            "prompt_count": 8
+        },
+        {
+            "topic": "Understanding Customer Behavior Through WhatsApp Analytics",
+            "description": "This topic focuses on how businesses can leverage analytics from WhatsApp interactions to better understand customer behavior and preferences.",
+            "prompts": [
+                "How can WhatsApp analytics help businesses understand customer behavior?",
+                "What are the best practices for analyzing customer interactions on WhatsApp?",
+                "How does WhatsApp analytics compare to other social media analytics tools for understanding customer behavior?",
+                "What features should I look for in a WhatsApp CRM to gain insights into customer preferences?",
+                "Can you provide examples of businesses successfully using WhatsApp analytics to improve customer engagement?",
+                "What are the pros and cons of using WhatsApp for customer service and behavior analysis?",
+                "How do I interpret WhatsApp analytics data to enhance my marketing strategy?",
+                "What key metrics should I track in WhatsApp analytics to understand my customers better?"
+            ],
+            "prompt_count": 8
+        }
+    ],
+    "summary": {
+        "total_niches": 10,
+        "total_prompts": 80
+    }
+}

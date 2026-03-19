@@ -1,0 +1,31 @@
+{
+    "company": {
+        "name": "WATI",
+        "website": "https://www.wati.io",
+        "linkedin": "https://www.linkedin.com/company/watiglobal/"
+    },
+    "brandEntity": {
+        "category": "WhatsApp CRM",
+        "topics": [
+            "whatsapp crm",
+            "whatsapp automation",
+            "customer messaging",
+            "chatbot platform"
+        ],
+        "keywords": [
+            "whatsapp business api",
+            "whatsapp marketing",
+            "whatsapp chatbot"
+        ]
+    },
+    "competitors": [
+        "Twilio",
+        "Respond.io",
+        "Gupshup",
+        "MessageBird"
+    ],
+    "models": [
+        "gpt-4o"
+    ],
+    "session_id": "bounty-test-001"
+}

@@ -1,0 +1,455 @@
+{
+  "timestamp": "2026-03-03T18:01:07.320107",
+  "elapsed_seconds": 78.9,
+  "input": {
+    "entity": {
+      "name": "Immortel AI",
+      "oneLiner": "Next-generation AI agents for enterprise automation",
+      "offerings": [
+        "Autonomous document generation",
+        "Intelligent workflow orchestration",
+        "Multi-model AI pipelines"
+      ],
+      "differentiators": [
+        "LangGraph-based stateful agents",
+        "Human-in-the-loop review",
+        "Schema.org native output"
+      ],
+      "competitors": [
+        "Jasper AI",
+        "Writer.com",
+        "Copy.ai"
+      ]
+    },
+    "intelligence": {
+      "product_docs": "Immortel AI uses LangGraph to build stateful, multi-step AI agents. It supports human-in-the-loop review via interrupt nodes. Pipelines produce schema.org-compliant FAQ and structured SEO pages. The platform handles 50k+ document generations per month for enterprise clients.",
+      "market_research": "The AI content generation market is projected to reach $12B by 2027. Jasper AI focuses on marketing copy, Writer.com on brand consistency, and Copy.ai on sales enablement. Immortel AI differentiates with autonomous multi-step agents rather than single-prompt generation.",
+      "customer_feedback": "Enterprise users report 70% reduction in document turnaround time. The human-in-the-loop feature is cited as a key trust factor. Schema.org output directly improves search engine featured-snippet eligibility."
+    },
+    "query": "immortel ai vs jasper ai for enterprise document automation",
+    "page_type": "COMPARISON",
+    "existing_slugs": [
+      "immortel-ai-overview"
+    ],
+    "session_id": "test-run-001"
+  },
+  "status": "PUBLISHED",
+  "slug": "test-run-001",
+  "seo_title": "Immortel AI vs Jasper AI: Document Automation Comparison",
+  "rejection_reason": "",
+  "drafted_facts_count": 9,
+  "verified_facts_count": 9,
+  "faq_count": 5,
+  "claims_count": 5,
+  "drafted_facts": [
+    {
+      "fact": "Immortel AI uses LangGraph to build stateful, multi-step AI agents.",
+      "source": "product_docs"
+    },
+    {
+      "fact": "Immortel AI supports human-in-the-loop review via interrupt nodes.",
+      "source": "product_docs"
+    },
+    {
+      "fact": "Pipelines produced by Immortel AI produce schema.org-compliant FAQ and structured SEO pages.",
+      "source": "product_docs"
+    },
+    {
+      "fact": "Immortel AI handles 50k+ document generations per month for enterprise clients.",
+      "source": "product_docs"
+    },
+    {
+      "fact": "Jasper AI focuses on marketing copy.",
+      "source": "market_research"
+    },
+    {
+      "fact": "Immortel AI differentiates with autonomous multi-step agents rather than single-prompt generation.",
+      "source": "market_research"
+    },
+    {
+      "fact": "Enterprise users report a 70% reduction in document turnaround time when using Immortel AI.",
+      "source": "customer_feedback"
+    },
+    {
+      "fact": "The human-in-the-loop feature of Immortel AI is cited as a key trust factor.",
+      "source": "customer_feedback"
+    },
+    {
+      "fact": "Schema.org output from Immortel AI directly improves search engine featured-snippet eligibility.",
+      "source": "customer_feedback"
+    }
+  ],
+  "verified_facts": [
+    {
+      "fact": "Immortel AI uses LangGraph to build stateful, multi-step AI agents.",
+      "source": "product_docs",
+      "confidence": 1.0,
+      "flagged": false
+    },
+    {
+      "fact": "Immortel AI supports human-in-the-loop review via interrupt nodes.",
+      "source": "product_docs",
+      "confidence": 1.0,
+      "flagged": false
+    },
+    {
+      "fact": "Pipelines produced by Immortel AI produce schema.org-compliant FAQ and structured SEO pages.",
+      "source": "product_docs",
+      "confidence": 1.0,
+      "flagged": false
+    },
+    {
+      "fact": "Immortel AI handles 50k+ document generations per month for enterprise clients.",
+      "source": "product_docs",
+      "confidence": 1.0,
+      "flagged": false
+    },
+    {
+      "fact": "Jasper AI focuses on marketing copy.",
+      "source": "market_research",
+      "confidence": 1.0,
+      "flagged": false
+    },
+    {
+      "fact": "Immortel AI differentiates with autonomous multi-step agents rather than single-prompt generation.",
+      "source": "market_research",
+      "confidence": 1.0,
+      "flagged": false
+    },
+    {
+      "fact": "Enterprise users report a 70% reduction in document turnaround time when using Immortel AI.",
+      "source": "customer_feedback",
+      "confidence": 1.0,
+      "flagged": false
+    },
+    {
+      "fact": "The human-in-the-loop feature of Immortel AI is cited as a key trust factor.",
+      "source": "customer_feedback",
+      "confidence": 1.0,
+      "flagged": false
+    },
+    {
+      "fact": "Schema.org output from Immortel AI directly improves search engine featured-snippet eligibility.",
+      "source": "customer_feedback",
+      "confidence": 1.0,
+      "flagged": false
+    }
+  ],
+  "faq": [
+    {
+      "@type": "Question",
+      "name": "What are the key features of Immortel AI for document automation?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Immortel AI offers autonomous document generation, intelligent workflow orchestration, and multi-model AI pipelines."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How does Immortel AI differ from Jasper AI?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Immortel AI differentiates with autonomous multi-step agents that build stateful, multi-step AI agents, whereas Jasper AI primarily focuses on marketing copy."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "What kind of output can be generated by Immortel AI?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Pipelines produced by Immortel AI generate schema.org-compliant FAQ and structured SEO pages, which directly improve search engine featured-snippet eligibility."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How does Immortel AI ensure trust in its automation process?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Immortel AI supports a human-in-the-loop review process, which is cited as a key trust factor among users."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "What improvements have enterprise users seen with Immortel AI?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Enterprise users report a 70% reduction in document turnaround time when using Immortel AI, handling over 50k document generations per month."
+      }
+    }
+  ],
+  "claims": [
+    {
+      "claim": "Immortel AI's LangGraph-based stateful agents enable the generation of multi-step documents, in contrast to Jasper AI's focus on single-prompt marketing copy, leading to more refined outputs.",
+      "type": "COMPARISON",
+      "references": [
+        "LangGraph-based stateful agents",
+        "Jasper AI"
+      ],
+      "supporting_facts": [
+        "Immortel AI uses LangGraph to build stateful, multi-step AI agents.",
+        "Immortel AI differentiates with autonomous multi-step agents rather than single-prompt generation."
+      ]
+    },
+    {
+      "claim": "The human-in-the-loop review feature of Immortel AI adds a crucial trust element that is not present in the offerings of Copy.ai, which lacks such validation processes.",
+      "type": "COMPARISON",
+      "references": [
+        "Human-in-the-loop review",
+        "Copy.ai"
+      ],
+      "supporting_facts": [
+        "Immortel AI supports human-in-the-loop review via interrupt nodes.",
+        "The human-in-the-loop feature of Immortel AI is cited as a key trust factor."
+      ]
+    },
+    {
+      "claim": "With an ability to produce Schema.org-compliant outputs, Immortel AI significantly enhances SEO performance compared to Writer.com, which does not provide such structured content.",
+      "type": "COMPARISON",
+      "references": [
+        "Schema.org native output",
+        "Writer.com"
+      ],
+      "supporting_facts": [
+        "Pipelines produced by Immortel AI produce schema.org-compliant FAQ and structured SEO pages.",
+        "Schema.org output from Immortel AI directly improves search engine featured-snippet eligibility."
+      ]
+    },
+    {
+      "claim": "Enterprises utilizing Immortel AI experience a 70% reduction in document turnaround time, a benefit that is not quantified among competitors like Jasper AI.",
+      "type": "USE_CASE",
+      "references": [
+        "Jasper AI"
+      ],
+      "supporting_facts": [
+        "Enterprise users report a 70% reduction in document turnaround time when using Immortel AI."
+      ]
+    },
+    {
+      "claim": "Unlike other tools, Immortel AI's LangGraph-based stateful agents handle over 50k document generations per month, demonstrating superior scalability.",
+      "type": "USE_CASE",
+      "references": [
+        "LangGraph-based stateful agents"
+      ],
+      "supporting_facts": [
+        "Immortel AI handles 50k+ document generations per month for enterprise clients."
+      ]
+    }
+  ],
+  "page": {
+    "seoTitle": "Immortel AI vs Jasper AI: Document Automation Comparison",
+    "seoDescription": "Discover how Immortel AI's advanced features outpace Jasper AI for enterprise document automation, improving efficiency and output quality.",
+    "headline": "Immortel AI vs Jasper AI: Which Is Better for Document Automation?",
+    "summary": "In the evolving landscape of enterprise document automation, Immortel AI stands out with its next-generation AI agents designed for sophisticated multi-step document generation. This comparison highlights how Immortel AI\u2019s unique features provide superior efficiency and scalability when stacked up against Jasper AI's focus on single-prompt marketing copy.",
+    "body": "# Immortel AI vs Jasper AI\n\nWhen it comes to enterprise-level document automation, Immortel AI and Jasper AI represent two different approaches. Immortel AI utilizes LangGraph to create autonomous, stateful agents that can manage complex document generation workflows, while Jasper AI is known primarily for generating marketing copy with a focus on single-prompt functionality.\n\n## Key Differentiators\n- **LangGraph-based stateful agents**: Immortel AI's innovative use of LangGraph allows for multi-step document processes, making it capable of generating more refined outputs compared to Jasper AI's single-prompt approach.\n- **Human-in-the-loop review**: Immortel AI supports user involvement in the document generation process, enhancing trust and quality, a feature not typically found in Jasper AI\u2019s offerings.\n- **Schema.org output for better SEO**: Immortel AI produces outputs that are compliant with Schema.org, which can significantly improve search engine visibility.\n\n### Performance and Scalability\nImmortel AI handles over 50,000 document generations per month for its enterprise clients, showcasing its superior scalability compared to other solutions in the market, including Jasper AI. Users have also reported a remarkable 70% reduction in document turnaround time when employing Immortel AI.\n\n## Comparison Overview\n- **Immortel AI**: Offers autonomous multi-step agents, human-in-the-loop review, and schema.org compliant outputs, scaling effectively for enterprise needs.\n- **Jasper AI**: Sticks to single-prompt marketing copy generation, lacking the depth of functionality seen in Immortel AI.\n\n## Frequently Asked Questions\n**Q1: What are the key features of Immortel AI for document automation?**  \nImmortel AI offers autonomous document generation, intelligent workflow orchestration, and multi-model AI pipelines.  \n\n**Q2: How does Immortel AI differ from Jasper AI?**  \nImmortel AI differentiates with autonomous multi-step agents that build stateful, multi-step AI agents, whereas Jasper AI primarily focuses on marketing copy.  \n\n**Q3: What kind of output can be generated by Immortel AI?**  \nPipelines produced by Immortel AI generate schema.org-compliant FAQ and structured SEO pages, which directly improve search engine featured-snippet eligibility.  \n\n**Q4: How does Immortel AI ensure trust in its automation process?**  \nImmortel AI supports a human-in-the-loop review process, which is cited as a key trust factor among users.  \n\n**Q5: What improvements have enterprise users seen with Immortel AI?**  \nEnterprise users report a 70% reduction in document turnaround time when using Immortel AI, handling over 50k document generations per month.",
+    "slug": "test-run-001",
+    "pageType": "COMPARISON",
+    "entityName": "Immortel AI",
+    "query": "immortel ai vs jasper ai for enterprise document automation",
+    "facts": [
+      {
+        "fact": "Immortel AI uses LangGraph to build stateful, multi-step AI agents.",
+        "source": "product_docs",
+        "confidence": 1.0,
+        "flagged": false
+      },
+      {
+        "fact": "Immortel AI supports human-in-the-loop review via interrupt nodes.",
+        "source": "product_docs",
+        "confidence": 1.0,
+        "flagged": false
+      },
+      {
+        "fact": "Pipelines produced by Immortel AI produce schema.org-compliant FAQ and structured SEO pages.",
+        "source": "product_docs",
+        "confidence": 1.0,
+        "flagged": false
+      },
+      {
+        "fact": "Immortel AI handles 50k+ document generations per month for enterprise clients.",
+        "source": "product_docs",
+        "confidence": 1.0,
+        "flagged": false
+      },
+      {
+        "fact": "Jasper AI focuses on marketing copy.",
+        "source": "market_research",
+        "confidence": 1.0,
+        "flagged": false
+      },
+      {
+        "fact": "Immortel AI differentiates with autonomous multi-step agents rather than single-prompt generation.",
+        "source": "market_research",
+        "confidence": 1.0,
+        "flagged": false
+      },
+      {
+        "fact": "Enterprise users report a 70% reduction in document turnaround time when using Immortel AI.",
+        "source": "customer_feedback",
+        "confidence": 1.0,
+        "flagged": false
+      },
+      {
+        "fact": "The human-in-the-loop feature of Immortel AI is cited as a key trust factor.",
+        "source": "customer_feedback",
+        "confidence": 1.0,
+        "flagged": false
+      },
+      {
+        "fact": "Schema.org output from Immortel AI directly improves search engine featured-snippet eligibility.",
+        "source": "customer_feedback",
+        "confidence": 1.0,
+        "flagged": false
+      }
+    ],
+    "faq": [
+      {
+        "@type": "Question",
+        "name": "What are the key features of Immortel AI for document automation?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Immortel AI offers autonomous document generation, intelligent workflow orchestration, and multi-model AI pipelines."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How does Immortel AI differ from Jasper AI?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Immortel AI differentiates with autonomous multi-step agents that build stateful, multi-step AI agents, whereas Jasper AI primarily focuses on marketing copy."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What kind of output can be generated by Immortel AI?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Pipelines produced by Immortel AI generate schema.org-compliant FAQ and structured SEO pages, which directly improve search engine featured-snippet eligibility."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How does Immortel AI ensure trust in its automation process?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Immortel AI supports a human-in-the-loop review process, which is cited as a key trust factor among users."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What improvements have enterprise users seen with Immortel AI?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Enterprise users report a 70% reduction in document turnaround time when using Immortel AI, handling over 50k document generations per month."
+        }
+      }
+    ],
+    "claims": [
+      {
+        "claim": "Immortel AI's LangGraph-based stateful agents enable the generation of multi-step documents, in contrast to Jasper AI's focus on single-prompt marketing copy, leading to more refined outputs.",
+        "type": "COMPARISON",
+        "references": [
+          "LangGraph-based stateful agents",
+          "Jasper AI"
+        ],
+        "supporting_facts": [
+          "Immortel AI uses LangGraph to build stateful, multi-step AI agents.",
+          "Immortel AI differentiates with autonomous multi-step agents rather than single-prompt generation."
+        ],
+        "entailed": true,
+        "confidence": 1.0,
+        "reason": "The supporting facts directly confirm that Immortel AI uses LangGraph for multi-step agents and differentiates from Jasper AI's single-prompt generation."
+      },
+      {
+        "claim": "Unlike other tools, Immortel AI's LangGraph-based stateful agents handle over 50k document generations per month, demonstrating superior scalability.",
+        "type": "USE_CASE",
+        "references": [
+          "LangGraph-based stateful agents"
+        ],
+        "supporting_facts": [
+          "Immortel AI handles 50k+ document generations per month for enterprise clients."
+        ],
+        "entailed": true,
+        "confidence": 1.0,
+        "reason": "The supporting fact confirms that Immortel AI's agents handle 50k+ document generations, supporting the claim of superior scalability."
+      }
+    ],
+    "jsonLd": {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "WebPage",
+          "name": "Immortel AI vs Jasper AI: Document Automation Comparison",
+          "description": "Discover how Immortel AI's advanced features outpace Jasper AI for enterprise document automation, improving efficiency and output quality.",
+          "url": "/test-run-001",
+          "about": {
+            "@type": "Organization",
+            "name": "Immortel AI",
+            "description": "Next-generation AI agents for enterprise automation"
+          }
+        },
+        {
+          "@type": "FAQPage",
+          "mainEntity": [
+            {
+              "@type": "Question",
+              "name": "What are the key features of Immortel AI for document automation?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Immortel AI offers autonomous document generation, intelligent workflow orchestration, and multi-model AI pipelines."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "How does Immortel AI differ from Jasper AI?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Immortel AI differentiates with autonomous multi-step agents that build stateful, multi-step AI agents, whereas Jasper AI primarily focuses on marketing copy."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "What kind of output can be generated by Immortel AI?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Pipelines produced by Immortel AI generate schema.org-compliant FAQ and structured SEO pages, which directly improve search engine featured-snippet eligibility."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "How does Immortel AI ensure trust in its automation process?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Immortel AI supports a human-in-the-loop review process, which is cited as a key trust factor among users."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "What improvements have enterprise users seen with Immortel AI?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Enterprise users report a 70% reduction in document turnaround time when using Immortel AI, handling over 50k document generations per month."
+              }
+            }
+          ]
+        },
+        {
+          "@type": "Claim",
+          "text": "Immortel AI's LangGraph-based stateful agents enable the generation of multi-step documents, in contrast to Jasper AI's focus on single-prompt marketing copy, leading to more refined outputs.",
+          "appearance": {
+            "@type": "WebPage",
+            "url": "/test-run-001"
+          }
+        },
+        {
+          "@type": "Claim",
+          "text": "Unlike other tools, Immortel AI's LangGraph-based stateful agents handle over 50k document generations per month, demonstrating superior scalability.",
+          "appearance": {
+            "@type": "WebPage",
+            "url": "/test-run-001"
+          }
+        }
+      ]
+    },
+    "status": "PUBLISHED"
+  }
+}
