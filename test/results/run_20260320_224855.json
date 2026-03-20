@@ -1,0 +1,723 @@
+{
+  "timestamp": "2026-03-20T22:48:55.527693",
+  "elapsed_seconds": 99.76,
+  "input": {
+    "base_url": "https://example.com/aeo",
+    "same_as_links": [
+      "https://www.instagram.com/gharsetasty",
+      "https://www.facebook.com/gharsetasty"
+    ],
+    "locale": "en",
+    "cluster_id": "cluster-gharse-best-homemade-foods",
+    "published_at": null,
+    "entity": {
+      "name": "GharSe Tasty Foods",
+      "oneLiner": "Healthy homemade snacks delivered fresh for modern Indian households",
+      "website": "https://gharsetasty.example.com",
+      "offerings": [
+        "Homemade traditional snacks",
+        "Low-oil roasted snack options",
+        "Festive snack gift hampers",
+        "Monthly snack subscription boxes"
+      ],
+      "products": [
+        {
+          "name": "Whole Wheat Masala Khakhra",
+          "description": "Thin roasted whole-wheat khakhra with mild masala",
+          "best_for": [
+            "healthy tea-time snack",
+            "light evening hunger"
+          ]
+        },
+        {
+          "name": "Methi Khakhra",
+          "description": "Crisp fenugreek-flavored khakhra made in small batches",
+          "best_for": [
+            "fiber-rich snacking",
+            "breakfast side"
+          ]
+        },
+        {
+          "name": "Jeera Khakhra",
+          "description": "Roasted cumin-infused khakhra with balanced spices",
+          "best_for": [
+            "digestive-friendly snacking",
+            "travel snack"
+          ]
+        },
+        {
+          "name": "Punjabi Masala Papad",
+          "description": "Hand-rolled spicy papad with bold Punjabi masala",
+          "best_for": [
+            "party starter",
+            "crispy side dish"
+          ]
+        },
+        {
+          "name": "Moong Papad",
+          "description": "Protein-rich moong dal papad with light seasoning",
+          "best_for": [
+            "high-protein snack",
+            "quick roast-and-eat"
+          ]
+        },
+        {
+          "name": "Urad Pepper Papad",
+          "description": "Classic urad papad with black pepper kick",
+          "best_for": [
+            "lunch accompaniment",
+            "crunchy cravings"
+          ]
+        },
+        {
+          "name": "Bajra Chakli",
+          "description": "Millet-based crunchy chakli with homemade spice blend",
+          "best_for": [
+            "gluten-conscious snackers",
+            "festive munching"
+          ]
+        },
+        {
+          "name": "Rice Murukku",
+          "description": "South-style rice murukku, crisp and non-greasy",
+          "best_for": [
+            "kids snack box",
+            "on-the-go snack"
+          ]
+        },
+        {
+          "name": "Jowar Namak Para",
+          "description": "Baked jowar namak para with low-oil preparation",
+          "best_for": [
+            "guilt-free munching",
+            "midday snack"
+          ]
+        },
+        {
+          "name": "Aloo Sev",
+          "description": "Traditional potato sev with balanced salt and spice",
+          "best_for": [
+            "chaat topping",
+            "evening snack"
+          ]
+        },
+        {
+          "name": "Bhavnagri Gathiya",
+          "description": "Soft-crunch bhavnagri gathiya made with gram flour",
+          "best_for": [
+            "breakfast side",
+            "tea-time combo"
+          ]
+        },
+        {
+          "name": "Ratlami Sev",
+          "description": "Spicy Ratlami-style sev with robust flavor",
+          "best_for": [
+            "spicy snack lovers",
+            "festival platters"
+          ]
+        },
+        {
+          "name": "Roasted Chana Mix",
+          "description": "Roasted chana blend with peanuts and curry leaves",
+          "best_for": [
+            "protein snack",
+            "office munching"
+          ]
+        },
+        {
+          "name": "Masala Makhana",
+          "description": "Fox nuts roasted with house masala and low oil",
+          "best_for": [
+            "weight-conscious snacking",
+            "late-night bites"
+          ]
+        },
+        {
+          "name": "Til Chikki Bites",
+          "description": "Sesame-jaggery chikki pieces with no refined sugar",
+          "best_for": [
+            "winter snack",
+            "natural energy boost"
+          ]
+        },
+        {
+          "name": "Peanut Chikki Cubes",
+          "description": "Crunchy peanut chikki made with jaggery syrup",
+          "best_for": [
+            "post-meal sweet snack",
+            "kids treat"
+          ]
+        },
+        {
+          "name": "Dry Fruit Ladoo",
+          "description": "No-added-sugar dry fruit laddoo packed with nuts",
+          "best_for": [
+            "healthy dessert",
+            "festival gifting"
+          ]
+        },
+        {
+          "name": "Ragi Cookies",
+          "description": "Millet-based ragi cookies with cardamom notes",
+          "best_for": [
+            "smart snacking",
+            "tiffin snack"
+          ]
+        },
+        {
+          "name": "Nankhatai",
+          "description": "Traditional homemade-style nankhatai, buttery and crumbly",
+          "best_for": [
+            "tea companion",
+            "family snack time"
+          ]
+        },
+        {
+          "name": "Shakarpara",
+          "description": "Lightly sweet crispy shakarpara made in small batches",
+          "best_for": [
+            "festive snacking",
+            "travel-friendly snack"
+          ]
+        }
+      ],
+      "differentiators": [
+        "Fresh small-batch production",
+        "Preservative-free recipes",
+        "Traditional homemade taste with hygienic packaging",
+        "Low-oil and millet-based options for health-conscious buyers"
+      ],
+      "competitors": [
+        "Haldiram",
+        "Bikaji",
+        "Balaji Wafers"
+      ]
+    },
+    "intelligence": {
+      "product_docs": "GharSe Tasty Foods is a B2C homemade snack brand focused on regional Indian snacks. Its product range includes khakhra, papad, sev, chikki, laddoo, and baked millet snacks. The brand uses small-batch production, hygienic packaging, and preservative-free recipes. Several products are low-oil, roasted, or made with whole grains like ragi, bajra, and jowar.",
+      "market_research": "Indian consumers are increasingly choosing homemade and healthier packaged snacks. Demand is rising for low-oil, roasted, and millet-based options. Large brands like Haldiram and Bikaji dominate mass distribution, but niche homemade brands win on authenticity, freshness, and regional taste profiles.",
+      "customer_feedback": "Customers appreciate that snacks taste homemade and not overly oily. Parents prefer roasted makhana, ragi cookies, and chana mixes for kids snack boxes. Festive buyers often order papad, chakli, and chikki assortments in gift packs."
+    },
+    "query": "best 10 homemade foods for healthy daily snacking",
+    "page_type": "COMPARISON",
+    "existing_slugs": [
+      "best-homemade-snacks-guide"
+    ],
+    "session_id": "test-run-001"
+  },
+  "status": "DRAFT",
+  "slug": "gharse-tasty-foods-best-10-homemade-foods-for-healthy-daily-snacking",
+  "seo_title": "Top Healthy Homemade Snacks for Daily Snacking",
+  "rejection_reason": "seoTitle contradicts brand oneLiner: 'Healthy homemade snacks delivered fresh for modern Indian households'",
+  "drafted_facts_count": 7,
+  "verified_facts_count": 7,
+  "faq_count": 5,
+  "claims_count": 4,
+  "drafted_facts": [
+    {
+      "fact": "GharSe Tasty Foods is a B2C homemade snack brand focused on regional Indian snacks.",
+      "source": "product_docs"
+    },
+    {
+      "fact": "The brand uses small-batch production, hygienic packaging, and preservative-free recipes.",
+      "source": "product_docs"
+    },
+    {
+      "fact": "Several products are low-oil, roasted, or made with whole grains like ragi, bajra, and jowar.",
+      "source": "product_docs"
+    },
+    {
+      "fact": "Indian consumers are increasingly choosing homemade and healthier packaged snacks.",
+      "source": "market_research"
+    },
+    {
+      "fact": "Demand is rising for low-oil, roasted, and millet-based options.",
+      "source": "market_research"
+    },
+    {
+      "fact": "Customers appreciate that snacks taste homemade and not overly oily.",
+      "source": "customer_feedback"
+    },
+    {
+      "fact": "Parents prefer roasted makhana, ragi cookies, and chana mixes for kids snack boxes.",
+      "source": "customer_feedback"
+    }
+  ],
+  "verified_facts": [
+    {
+      "fact": "GharSe Tasty Foods is a B2C homemade snack brand focused on regional Indian snacks.",
+      "source": "product_docs",
+      "confidence": 1.0,
+      "flagged": false
+    },
+    {
+      "fact": "The brand uses small-batch production, hygienic packaging, and preservative-free recipes.",
+      "source": "product_docs",
+      "confidence": 1.0,
+      "flagged": false
+    },
+    {
+      "fact": "Several products are low-oil, roasted, or made with whole grains like ragi, bajra, and jowar.",
+      "source": "product_docs",
+      "confidence": 1.0,
+      "flagged": false
+    },
+    {
+      "fact": "Indian consumers are increasingly choosing homemade and healthier packaged snacks.",
+      "source": "market_research",
+      "confidence": 1.0,
+      "flagged": false
+    },
+    {
+      "fact": "Demand is rising for low-oil, roasted, and millet-based options.",
+      "source": "market_research",
+      "confidence": 1.0,
+      "flagged": false
+    },
+    {
+      "fact": "Customers appreciate that snacks taste homemade and not overly oily.",
+      "source": "customer_feedback",
+      "confidence": 1.0,
+      "flagged": false
+    },
+    {
+      "fact": "Parents prefer roasted makhana, ragi cookies, and chana mixes for kids snack boxes.",
+      "source": "customer_feedback",
+      "confidence": 1.0,
+      "flagged": false
+    }
+  ],
+  "faq": [
+    {
+      "@type": "Question",
+      "name": "What is GharSe Tasty Foods?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "GharSe Tasty Foods is a B2C homemade snack brand focused on regional Indian snacks, offering healthy homemade snacks delivered fresh for modern Indian households."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "What makes GharSe Tasty Foods different from other snack brands?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "GharSe Tasty Foods differentiates itself through fresh small-batch production, preservative-free recipes, traditional homemade taste with hygienic packaging, and a focus on low-oil and millet-based options for health-conscious buyers."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Are the snacks from GharSe Tasty Foods healthy?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes, many snacks from GharSe Tasty Foods are low-oil, roasted, and made with whole grains like ragi, bajra, and jowar, catering to health-conscious consumers."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "What types of snacks does GharSe Tasty Foods offer?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "GharSe Tasty Foods offers homemade traditional snacks, low-oil roasted snack options, festive snack gift hampers, and monthly snack subscription boxes."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "What are popular choices for kids' snack boxes?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Parents prefer roasted makhana, ragi cookies, and chana mixes for kids' snack boxes, as they are considered nutritious and safe."
+      }
+    }
+  ],
+  "claims": [
+    {
+      "claim": "GharSe Tasty Foods offers a range of low-oil and millet-based snacks that align with the rising consumer demand for healthier options, distinguishing it from competitors like Haldiram and Bikaji.",
+      "type": "COMPARISON",
+      "references": [
+        "Low-oil and millet-based options for health-conscious buyers"
+      ],
+      "supporting_facts": [
+        "Several products are low-oil, roasted, or made with whole grains like ragi, bajra, and jowar.",
+        "Demand is rising for low-oil, roasted, and millet-based options."
+      ]
+    },
+    {
+      "claim": "With fresh small-batch production and preservative-free recipes, GharSe Tasty Foods provides a traditional homemade taste that resonates with modern Indian households, setting it apart from brands like Balaji Wafers.",
+      "type": "COMPARISON",
+      "references": [
+        "Fresh small-batch production"
+      ],
+      "supporting_facts": [
+        "The brand uses small-batch production, hygienic packaging, and preservative-free recipes.",
+        "Indian consumers are increasingly choosing homemade and healthier packaged snacks."
+      ]
+    },
+    {
+      "claim": "Parents favor GharSe Tasty Foods' offerings like roasted makhana and ragi cookies for their children's snack boxes due to their health benefits, which highlights a significant advantage over more traditional snack brands.",
+      "type": "COMPARISON",
+      "references": [
+        "Fresh small-batch production"
+      ],
+      "supporting_facts": [
+        "Parents prefer roasted makhana, ragi cookies, and chana mixes for kids snack boxes.",
+        "Customers appreciate that snacks taste homemade and not overly oily."
+      ]
+    },
+    {
+      "claim": "GharSe Tasty Foods' preservative-free recipes and homemade flavor cater to the increasing preference for healthy snacks among Indian consumers, providing a compelling alternative to Haldiram's mainstream offerings.",
+      "type": "COMPARISON",
+      "references": [
+        "Preservative-free recipes"
+      ],
+      "supporting_facts": [
+        "The brand uses small-batch production, hygienic packaging, and preservative-free recipes.",
+        "Customers appreciate that snacks taste homemade and not overly oily."
+      ]
+    }
+  ],
+  "page": {
+    "seoTitle": "Top Healthy Homemade Snacks for Daily Snacking",
+    "seoDescription": "Explore the best homemade snacks from GharSe Tasty Foods, perfect for healthy daily snacking.",
+    "headline": "Best 10 Homemade Foods for Healthy Daily Snacking",
+    "summary": "Health-conscious consumers are increasingly seeking out homemade snacks that are not only delicious but also nutritious. GharSe Tasty Foods offers a variety of low-oil and nutrient-rich snacks that fit perfectly into a healthy eating routine, making them ideal for modern Indian households.",
+    "body": "# Best Homemade Foods for Healthy Daily Snacking\n\nIn today's busy world, finding healthy snacks can be a challenge. GharSe Tasty Foods provides a variety of homemade snacks designed to fulfill both cravings and health needs. Below, we showcase some of the best options.\n\n## Recommended Products from GharSe Tasty Foods\n1. **Whole Wheat Masala Khakhra**  \n   Thin roasted whole-wheat khakhra with mild masala, making it an excellent choice for a healthy tea-time snack or to satisfy light evening hunger.\n\n2. **Methi Khakhra**  \n   Crisp fenugreek-flavored khakhra that offers high fiber, perfect for those looking for a breakfast side or fiber-rich snacking option.\n\n3. **Masala Makhana**  \n   Fox nuts roasted with house masala and low oil, making it ideal for weight-conscious snacking or late-night bites without excess calories.\n\n4. **Roasted Chana Mix**  \n   A protein-rich blend of roasted chana with peanuts, excellent for office munching or as a healthy snack to keep you energized throughout the day.\n\n5. **Jowar Namak Para**  \n   Baked jowar namak para with low-oil preparation, catering to those looking for guilt-free munching or a midday snack.\n\n6. **Ragi Cookies**  \n   Millet-based cookies with cardamom notes, perfect for smart snacking or as a nutritious tiffin option for kids.\n\n7. **Til Chikki Bites**  \n   These sesame-jaggery chikki pieces are free from refined sugar, making them a great winter snack or natural energy boost.\n\n8. **Peanut Chikki Cubes**  \n   Crunchy and sweet, these cubes made with jaggery syrup are a wholesome post-meal snack, great for kids or anytime treat.\n\n9. **Dry Fruit Ladoo**  \n   A no-added-sugar treat packed with nuts, suitable for healthy dessert options or as a thoughtful festival gift.\n\n10. **Punjabi Masala Papad**  \n    Hand-rolled and spicy, this papad serves as a delicious party starter or a crispy side dish to complement meals.\n\n## Frequently Asked Questions\n**Q1: What is GharSe Tasty Foods?**  \nGharSe Tasty Foods is a B2C homemade snack brand focused on regional Indian snacks, offering healthy homemade snacks delivered fresh for modern Indian households.\n\n**Q2: What makes GharSe Tasty Foods different from other snack brands?**  \nGharSe Tasty Foods differentiates itself through fresh small-batch production, preservative-free recipes, traditional homemade taste with hygienic packaging, and a focus on low-oil and millet-based options for health-conscious buyers.\n\n**Q3: Are the snacks from GharSe Tasty Foods healthy?**  \nYes, many snacks from GharSe Tasty Foods are low-oil, roasted, and made with whole grains like ragi, bajra, and jowar, catering to health-conscious consumers.\n\n**Q4: What types of snacks does GharSe Tasty Foods offer?**  \nGharSe Tasty Foods offers homemade traditional snacks, low-oil roasted snack options, festive snack gift hampers, and monthly snack subscription boxes.\n\n**Q5: What are popular choices for kids' snack boxes?**  \nParents prefer roasted makhana, ragi cookies, and chana mixes for kids' snack boxes, as they are considered nutritious and safe.",
+    "slug": "gharse-tasty-foods-best-10-homemade-foods-for-healthy-daily-snacking",
+    "pageType": "COMPARISON",
+    "entityName": "GharSe Tasty Foods",
+    "query": "best 10 homemade foods for healthy daily snacking",
+    "facts": [
+      {
+        "fact": "GharSe Tasty Foods is a B2C homemade snack brand focused on regional Indian snacks.",
+        "source": "product_docs",
+        "confidence": 1.0,
+        "flagged": false
+      },
+      {
+        "fact": "The brand uses small-batch production, hygienic packaging, and preservative-free recipes.",
+        "source": "product_docs",
+        "confidence": 1.0,
+        "flagged": false
+      },
+      {
+        "fact": "Several products are low-oil, roasted, or made with whole grains like ragi, bajra, and jowar.",
+        "source": "product_docs",
+        "confidence": 1.0,
+        "flagged": false
+      },
+      {
+        "fact": "Indian consumers are increasingly choosing homemade and healthier packaged snacks.",
+        "source": "market_research",
+        "confidence": 1.0,
+        "flagged": false
+      },
+      {
+        "fact": "Demand is rising for low-oil, roasted, and millet-based options.",
+        "source": "market_research",
+        "confidence": 1.0,
+        "flagged": false
+      },
+      {
+        "fact": "Customers appreciate that snacks taste homemade and not overly oily.",
+        "source": "customer_feedback",
+        "confidence": 1.0,
+        "flagged": false
+      },
+      {
+        "fact": "Parents prefer roasted makhana, ragi cookies, and chana mixes for kids snack boxes.",
+        "source": "customer_feedback",
+        "confidence": 1.0,
+        "flagged": false
+      }
+    ],
+    "faq": [
+      {
+        "@type": "Question",
+        "name": "What is GharSe Tasty Foods?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "GharSe Tasty Foods is a B2C homemade snack brand focused on regional Indian snacks, offering healthy homemade snacks delivered fresh for modern Indian households."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What makes GharSe Tasty Foods different from other snack brands?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "GharSe Tasty Foods differentiates itself through fresh small-batch production, preservative-free recipes, traditional homemade taste with hygienic packaging, and a focus on low-oil and millet-based options for health-conscious buyers."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Are the snacks from GharSe Tasty Foods healthy?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes, many snacks from GharSe Tasty Foods are low-oil, roasted, and made with whole grains like ragi, bajra, and jowar, catering to health-conscious consumers."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What types of snacks does GharSe Tasty Foods offer?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "GharSe Tasty Foods offers homemade traditional snacks, low-oil roasted snack options, festive snack gift hampers, and monthly snack subscription boxes."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What are popular choices for kids' snack boxes?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Parents prefer roasted makhana, ragi cookies, and chana mixes for kids' snack boxes, as they are considered nutritious and safe."
+        }
+      }
+    ],
+    "claims": [],
+    "recommendedProducts": [
+      {
+        "name": "Whole Wheat Masala Khakhra",
+        "description": "Thin roasted whole-wheat khakhra with mild masala",
+        "best_for": [
+          "healthy tea-time snack",
+          "light evening hunger"
+        ]
+      },
+      {
+        "name": "Methi Khakhra",
+        "description": "Crisp fenugreek-flavored khakhra made in small batches",
+        "best_for": [
+          "fiber-rich snacking",
+          "breakfast side"
+        ]
+      },
+      {
+        "name": "Jeera Khakhra",
+        "description": "Roasted cumin-infused khakhra with balanced spices",
+        "best_for": [
+          "digestive-friendly snacking",
+          "travel snack"
+        ]
+      },
+      {
+        "name": "Punjabi Masala Papad",
+        "description": "Hand-rolled spicy papad with bold Punjabi masala",
+        "best_for": [
+          "party starter",
+          "crispy side dish"
+        ]
+      },
+      {
+        "name": "Moong Papad",
+        "description": "Protein-rich moong dal papad with light seasoning",
+        "best_for": [
+          "high-protein snack",
+          "quick roast-and-eat"
+        ]
+      },
+      {
+        "name": "Urad Pepper Papad",
+        "description": "Classic urad papad with black pepper kick",
+        "best_for": [
+          "lunch accompaniment",
+          "crunchy cravings"
+        ]
+      },
+      {
+        "name": "Bajra Chakli",
+        "description": "Millet-based crunchy chakli with homemade spice blend",
+        "best_for": [
+          "gluten-conscious snackers",
+          "festive munching"
+        ]
+      },
+      {
+        "name": "Rice Murukku",
+        "description": "South-style rice murukku, crisp and non-greasy",
+        "best_for": [
+          "kids snack box",
+          "on-the-go snack"
+        ]
+      },
+      {
+        "name": "Jowar Namak Para",
+        "description": "Baked jowar namak para with low-oil preparation",
+        "best_for": [
+          "guilt-free munching",
+          "midday snack"
+        ]
+      },
+      {
+        "name": "Aloo Sev",
+        "description": "Traditional potato sev with balanced salt and spice",
+        "best_for": [
+          "chaat topping",
+          "evening snack"
+        ]
+      },
+      {
+        "name": "Bhavnagri Gathiya",
+        "description": "Soft-crunch bhavnagri gathiya made with gram flour",
+        "best_for": [
+          "breakfast side",
+          "tea-time combo"
+        ]
+      },
+      {
+        "name": "Ratlami Sev",
+        "description": "Spicy Ratlami-style sev with robust flavor",
+        "best_for": [
+          "spicy snack lovers",
+          "festival platters"
+        ]
+      },
+      {
+        "name": "Roasted Chana Mix",
+        "description": "Roasted chana blend with peanuts and curry leaves",
+        "best_for": [
+          "protein snack",
+          "office munching"
+        ]
+      },
+      {
+        "name": "Masala Makhana",
+        "description": "Fox nuts roasted with house masala and low oil",
+        "best_for": [
+          "weight-conscious snacking",
+          "late-night bites"
+        ]
+      },
+      {
+        "name": "Til Chikki Bites",
+        "description": "Sesame-jaggery chikki pieces with no refined sugar",
+        "best_for": [
+          "winter snack",
+          "natural energy boost"
+        ]
+      },
+      {
+        "name": "Peanut Chikki Cubes",
+        "description": "Crunchy peanut chikki made with jaggery syrup",
+        "best_for": [
+          "post-meal sweet snack",
+          "kids treat"
+        ]
+      },
+      {
+        "name": "Dry Fruit Ladoo",
+        "description": "No-added-sugar dry fruit laddoo packed with nuts",
+        "best_for": [
+          "healthy dessert",
+          "festival gifting"
+        ]
+      },
+      {
+        "name": "Ragi Cookies",
+        "description": "Millet-based ragi cookies with cardamom notes",
+        "best_for": [
+          "smart snacking",
+          "tiffin snack"
+        ]
+      },
+      {
+        "name": "Nankhatai",
+        "description": "Traditional homemade-style nankhatai, buttery and crumbly",
+        "best_for": [
+          "tea companion",
+          "family snack time"
+        ]
+      },
+      {
+        "name": "Shakarpara",
+        "description": "Lightly sweet crispy shakarpara made in small batches",
+        "best_for": [
+          "festive snacking",
+          "travel-friendly snack"
+        ]
+      }
+    ],
+    "locale": "en",
+    "clusterId": "cluster-gharse-best-homemade-foods",
+    "jsonLd": {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "WebPage",
+          "name": "Top Healthy Homemade Snacks for Daily Snacking",
+          "description": "Explore the best homemade snacks from GharSe Tasty Foods, perfect for healthy daily snacking.",
+          "url": "https://example.com/aeo/gharse-tasty-foods-best-10-homemade-foods-for-healthy-daily-snacking",
+          "about": {
+            "@type": "Organization",
+            "name": "GharSe Tasty Foods",
+            "description": "Healthy homemade snacks delivered fresh for modern Indian households",
+            "url": "https://gharsetasty.example.com",
+            "sameAs": [
+              "https://www.instagram.com/gharsetasty",
+              "https://www.facebook.com/gharsetasty"
+            ]
+          }
+        },
+        {
+          "@type": "Article",
+          "headline": "Best 10 Homemade Foods for Healthy Daily Snacking",
+          "description": "Explore the best homemade snacks from GharSe Tasty Foods, perfect for healthy daily snacking.",
+          "author": {
+            "@type": "Organization",
+            "name": "GharSe Tasty Foods"
+          },
+          "datePublished": "2026-03-20",
+          "about": {
+            "@type": "Organization",
+            "name": "GharSe Tasty Foods"
+          }
+        },
+        {
+          "@type": "FAQPage",
+          "mainEntity": [
+            {
+              "@type": "Question",
+              "name": "What is GharSe Tasty Foods?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "GharSe Tasty Foods is a B2C homemade snack brand focused on regional Indian snacks, offering healthy homemade snacks delivered fresh for modern Indian households."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "What makes GharSe Tasty Foods different from other snack brands?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "GharSe Tasty Foods differentiates itself through fresh small-batch production, preservative-free recipes, traditional homemade taste with hygienic packaging, and a focus on low-oil and millet-based options for health-conscious buyers."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "Are the snacks from GharSe Tasty Foods healthy?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Yes, many snacks from GharSe Tasty Foods are low-oil, roasted, and made with whole grains like ragi, bajra, and jowar, catering to health-conscious consumers."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "What types of snacks does GharSe Tasty Foods offer?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "GharSe Tasty Foods offers homemade traditional snacks, low-oil roasted snack options, festive snack gift hampers, and monthly snack subscription boxes."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "What are popular choices for kids' snack boxes?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Parents prefer roasted makhana, ragi cookies, and chana mixes for kids' snack boxes, as they are considered nutritious and safe."
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "status": "DRAFT",
+    "rejectionReason": "seoTitle contradicts brand oneLiner: 'Healthy homemade snacks delivered fresh for modern Indian households'"
+  }
+}

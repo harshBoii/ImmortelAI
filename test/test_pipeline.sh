@@ -29,54 +29,158 @@ from agent.pipe import aeo_agent_app
 test_input = {
     'base_url': 'https://example.com/aeo',
     'same_as_links': [
-        'https://www.linkedin.com/company/immortel-ai',
-        'https://twitter.com/immortel_ai'
+        'https://www.instagram.com/gharsetasty',
+        'https://www.facebook.com/gharsetasty'
     ],
     'locale': 'en',
-    'cluster_id': 'cluster-immortel-comparison',
+    'cluster_id': 'cluster-gharse-best-homemade-foods',
     'published_at': None,
     'entity': {
-        'name': 'Immortel AI',
-        'oneLiner': 'Next-generation AI agents for enterprise automation',
-        'website': 'https://example.com',
+        'name': 'GharSe Tasty Foods',
+        'oneLiner': 'Healthy homemade snacks delivered fresh for modern Indian households',
+        'website': 'https://gharsetasty.example.com',
         'offerings': [
-            'Autonomous document generation',
-            'Intelligent workflow orchestration',
-            'Multi-model AI pipelines'
+            'Homemade traditional snacks',
+            'Low-oil roasted snack options',
+            'Festive snack gift hampers',
+            'Monthly snack subscription boxes'
+        ],
+        'products': [
+            {
+                'name': 'Whole Wheat Masala Khakhra',
+                'description': 'Thin roasted whole-wheat khakhra with mild masala',
+                'best_for': ['healthy tea-time snack', 'light evening hunger']
+            },
+            {
+                'name': 'Methi Khakhra',
+                'description': 'Crisp fenugreek-flavored khakhra made in small batches',
+                'best_for': ['fiber-rich snacking', 'breakfast side']
+            },
+            {
+                'name': 'Jeera Khakhra',
+                'description': 'Roasted cumin-infused khakhra with balanced spices',
+                'best_for': ['digestive-friendly snacking', 'travel snack']
+            },
+            {
+                'name': 'Punjabi Masala Papad',
+                'description': 'Hand-rolled spicy papad with bold Punjabi masala',
+                'best_for': ['party starter', 'crispy side dish']
+            },
+            {
+                'name': 'Moong Papad',
+                'description': 'Protein-rich moong dal papad with light seasoning',
+                'best_for': ['high-protein snack', 'quick roast-and-eat']
+            },
+            {
+                'name': 'Urad Pepper Papad',
+                'description': 'Classic urad papad with black pepper kick',
+                'best_for': ['lunch accompaniment', 'crunchy cravings']
+            },
+            {
+                'name': 'Bajra Chakli',
+                'description': 'Millet-based crunchy chakli with homemade spice blend',
+                'best_for': ['gluten-conscious snackers', 'festive munching']
+            },
+            {
+                'name': 'Rice Murukku',
+                'description': 'South-style rice murukku, crisp and non-greasy',
+                'best_for': ['kids snack box', 'on-the-go snack']
+            },
+            {
+                'name': 'Jowar Namak Para',
+                'description': 'Baked jowar namak para with low-oil preparation',
+                'best_for': ['guilt-free munching', 'midday snack']
+            },
+            {
+                'name': 'Aloo Sev',
+                'description': 'Traditional potato sev with balanced salt and spice',
+                'best_for': ['chaat topping', 'evening snack']
+            },
+            {
+                'name': 'Bhavnagri Gathiya',
+                'description': 'Soft-crunch bhavnagri gathiya made with gram flour',
+                'best_for': ['breakfast side', 'tea-time combo']
+            },
+            {
+                'name': 'Ratlami Sev',
+                'description': 'Spicy Ratlami-style sev with robust flavor',
+                'best_for': ['spicy snack lovers', 'festival platters']
+            },
+            {
+                'name': 'Roasted Chana Mix',
+                'description': 'Roasted chana blend with peanuts and curry leaves',
+                'best_for': ['protein snack', 'office munching']
+            },
+            {
+                'name': 'Masala Makhana',
+                'description': 'Fox nuts roasted with house masala and low oil',
+                'best_for': ['weight-conscious snacking', 'late-night bites']
+            },
+            {
+                'name': 'Til Chikki Bites',
+                'description': 'Sesame-jaggery chikki pieces with no refined sugar',
+                'best_for': ['winter snack', 'natural energy boost']
+            },
+            {
+                'name': 'Peanut Chikki Cubes',
+                'description': 'Crunchy peanut chikki made with jaggery syrup',
+                'best_for': ['post-meal sweet snack', 'kids treat']
+            },
+            {
+                'name': 'Dry Fruit Ladoo',
+                'description': 'No-added-sugar dry fruit laddoo packed with nuts',
+                'best_for': ['healthy dessert', 'festival gifting']
+            },
+            {
+                'name': 'Ragi Cookies',
+                'description': 'Millet-based ragi cookies with cardamom notes',
+                'best_for': ['smart snacking', 'tiffin snack']
+            },
+            {
+                'name': 'Nankhatai',
+                'description': 'Traditional homemade-style nankhatai, buttery and crumbly',
+                'best_for': ['tea companion', 'family snack time']
+            },
+            {
+                'name': 'Shakarpara',
+                'description': 'Lightly sweet crispy shakarpara made in small batches',
+                'best_for': ['festive snacking', 'travel-friendly snack']
+            }
         ],
         'differentiators': [
-            'LangGraph-based stateful agents',
-            'Human-in-the-loop review',
-            'Schema.org native output'
+            'Fresh small-batch production',
+            'Preservative-free recipes',
+            'Traditional homemade taste with hygienic packaging',
+            'Low-oil and millet-based options for health-conscious buyers'
         ],
-        'competitors': ['Jasper AI', 'Writer.com', 'Copy.ai']
+        'competitors': ['Haldiram', 'Bikaji', 'Balaji Wafers']
     },
     'intelligence': {
         'product_docs': (
-            'Immortel AI uses LangGraph to build stateful, multi-step AI agents. '
-            'It supports human-in-the-loop review via interrupt nodes. '
-            'Pipelines produce schema.org-compliant FAQ and structured SEO pages. '
-            'The platform handles 50k+ document generations per month for enterprise clients.'
+            'GharSe Tasty Foods is a B2C homemade snack brand focused on regional Indian snacks. '
+            'Its product range includes khakhra, papad, sev, chikki, laddoo, and baked millet snacks. '
+            'The brand uses small-batch production, hygienic packaging, and preservative-free recipes. '
+            'Several products are low-oil, roasted, or made with whole grains like ragi, bajra, and jowar.'
         ),
         'market_research': (
-            'The AI content generation market is projected to reach \$12B by 2027. '
-            'Jasper AI focuses on marketing copy, Writer.com on brand consistency, '
-            'and Copy.ai on sales enablement. Immortel AI differentiates with '
-            'autonomous multi-step agents rather than single-prompt generation.'
+            'Indian consumers are increasingly choosing homemade and healthier packaged snacks. '
+            'Demand is rising for low-oil, roasted, and millet-based options. '
+            'Large brands like Haldiram and Bikaji dominate mass distribution, but niche homemade brands '
+            'win on authenticity, freshness, and regional taste profiles.'
         ),
         'customer_feedback': (
-            'Enterprise users report 70% reduction in document turnaround time. '
-            'The human-in-the-loop feature is cited as a key trust factor. '
-            'Schema.org output directly improves search engine featured-snippet eligibility.'
+            'Customers appreciate that snacks taste homemade and not overly oily. '
+            'Parents prefer roasted makhana, ragi cookies, and chana mixes for kids snack boxes. '
+            'Festive buyers often order papad, chakli, and chikki assortments in gift packs.'
         )
     },
-    'query': 'immortel ai vs jasper ai for enterprise document automation',
+    'query': 'best 10 homemade foods for healthy daily snacking',
     'page_type': 'COMPARISON',
-    'existing_slugs': ['immortel-ai-overview'],
+    'existing_slugs': ['best-homemade-snacks-guide'],
     'session_id': 'test-run-001'
 }
 
-print('▸ Invoking pipeline with COMPARISON page type...')
+print('▸ Invoking pipeline with homemade snack business payload...')
 print('▸ Entity:', test_input['entity']['name'])
 print('▸ Query: ', test_input['query'])
 print()

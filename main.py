@@ -28,6 +28,7 @@ class EntityInput(BaseModel):
     oneLiner: Optional[str] = None
     website: Optional[str] = None
     offerings: List[Any] = Field(default_factory=list)
+    products: List[Any] = Field(default_factory=list)
     differentiators: List[Any] = Field(default_factory=list)
     competitors: List[Any] = Field(default_factory=list)
 

@@ -417,6 +417,7 @@ def assemble_page(state: AeoPageState) -> AeoPageState:
     verified_facts = state["verified_facts"]
     faq = state["faq"]
     claims = state.get("verified_claims", [])
+    products = entity.get("products", [])
     page_type = state.get("page_type", "DEFINITION")
     existing_slugs = state.get("existing_slugs", [])
 
@@ -432,7 +433,14 @@ def assemble_page(state: AeoPageState) -> AeoPageState:
         counter += 1
 
     logger.info("[%s] Slug: %s (base=%s, %d existing checked)", node, slug, base_slug, len(existing_slugs))
-    logger.info("[%s] Assembling from %d facts, %d FAQ, %d verified claims", node, len(verified_facts), len(faq), len(claims))
+    logger.info(
+        "[%s] Assembling from %d facts, %d FAQ, %d verified claims, %d products",
+        node,
+        len(verified_facts),
+        len(faq),
+        len(claims),
+        len(products),
+    )
 
     # Pre-build FAQ markdown to inject into the body prompt
     faq_md_lines = []
@@ -449,6 +457,7 @@ QUERY: {query}
 PAGE TYPE: {page_type}
 VERIFIED FACTS: {json.dumps(verified_facts, indent=2)}
 VERIFIED CLAIMS: {json.dumps(claims, indent=2)}
+PRODUCTS: {json.dumps(products, indent=2)}
 
 FAQ SECTION (stitch this verbatim into the body under a "## Frequently Asked Questions" heading):
 {faq_markdown}
@@ -467,6 +476,11 @@ RULES:
 - The body must be comprehensive with clear markdown headings.
 - The FAQ section must appear in the body exactly as provided.
 - If claims exist, include a comparison/use-case section.
+- The article goal is commercial education: build trust in {entity.get("name", "")} and naturally position relevant products.
+- Recommend only products from PRODUCTS that are clearly appropriate for the query and supported by verified facts.
+- Add a "## Recommended Products from {entity.get("name", "")}" section when at least one product is relevant.
+- For every recommended product, explain why it fits in 1-2 lines grounded in verified facts; do not overhype.
+- If no product is relevant, do not force product promotion.
 - Ground everything in verified facts — no invented information.
 - Return ONLY the JSON object.
 """
@@ -484,6 +498,7 @@ RULES:
     page["facts"] = verified_facts
     page["faq"] = faq
     page["claims"] = claims
+    page["recommendedProducts"] = products
     page["locale"] = state.get("locale", "en")
     page["clusterId"] = state.get("cluster_id", None)
 
