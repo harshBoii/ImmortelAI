@@ -57,12 +57,17 @@ TOPIC_TEMPLATES = [
 class GeoRadarState(TypedDict):
     # ── Input (caller-provided) ────────────────────────────────
     company: dict        # {name, website, linkedin}
-    brand_entity: dict   # {category, topics, keywords}
+    brand_entity: dict   # {category, topics, keywords, offerings:[...], product/url/differentiators...}
     competitors: list    # ["Twilio", "Respond.io", ...]
     models: list         # ["gpt-4o", "claude-3.5", "gemini-1.5"]
+    llm_topics: list     # optional API-provided topics override
 
     # ── Pipeline stages (populated by nodes) ──────────────────
     topics: list         # expanded topic strings
+    company_insights: dict  # distilled niche/citation insights from business context
+    topic_metadata: dict  # {topic: {"reason": str, "use": str}}
+    prompt_topic_map: dict  # {prompt: topic}
+    prompt_metadata: dict  # {prompt: {"reason": str, "use": str}}
     prompts: list        # final prompt strings sent to LLMs
     raw_responses: list  # [{prompt, model, response, ?error}]
     citations: list      # [{prompt, model, companies:[{name,rank}]}]
@@ -108,6 +113,8 @@ def _llm_call(prompt: str, node_name: str, llm_client: ChatOpenAI | None = None)
     """Wraps an LLM invocation with timing and error logging."""
     client = llm_client or llm_parser
     logger.debug("[%s] LLM call started (%d chars prompt)", node_name, len(prompt))
+    logger.info("[%s] Prompt:\n%s", node_name, prompt)
+    
     t0 = time.time()
     try:
         response = client.invoke(prompt)
@@ -177,8 +184,221 @@ def _parse_ranking_regex(text: str) -> list[dict]:
     return results
 
 
+def _slugify(text: str) -> str:
+    slug = re.sub(r"[^a-z0-9]+", "-", str(text).lower()).strip("-")
+    return slug or "item"
+
+
+def _safe_list(x) -> list:
+    return x if isinstance(x, list) else []
+
+
+def _estimate_monthly_prompt_reach(prompt: str) -> float:
+    """
+    Multiplicative reach model:  base × intent_mult × audience_mult
+
+    base          → driven by word count (longer query = lower raw reach)
+    intent_mult   → biggest single driver of volume tier
+    audience_mult → niche qualifiers narrow the pool (reduces reach, raises intent)
+    """
+    p = prompt.lower()
+    word_count = len(p.split())
+
+    # ── 1. Base volume (word count inversely correlates with search volume)
+    if word_count <= 3:
+        base = 6_000.0   # head terms: "video hosting", "crm tools"
+    elif word_count <= 5:
+        base = 3_500.0   # mid: "best video hosting platforms"
+    elif word_count <= 8:
+        base = 1_800.0   # long-tail: "best video hosting for small business"
+    else:
+        base = 700.0     # ultra long-tail: conversational / hyper-specific
+
+    # ── 2. Intent multiplier (dominant volume driver)
+    #    "best X" queries get 3–5× the reach of generic queries at same word count
+    if any(k in p for k in ("best ", "top ", "top-")):
+        intent_mult = 2.8   # commercial evaluation — highest demand
+    elif any(k in p for k in (" vs ", " versus ", "comparison", "compare ")):
+        intent_mult = 2.4   # decision stage — strong demand
+    elif any(k in p for k in ("alternatives", "alternative to")):
+        intent_mult = 2.0   # switching intent — targeted demand
+    elif any(k in p for k in ("how to ", "guide to ", "tutorial", "step by step")):
+        intent_mult = 1.6   # informational — high volume, lower conversion
+    elif any(k in p for k in ("what is ", "what are ", "define ", "meaning of")):
+        intent_mult = 1.2   # awareness stage — broad but thin intent
+    else:
+        intent_mult = 1.0   # neutral / navigational
+
+    # ── 3. Audience modifier (niche qualifiers reduce reach, raise intent quality)
+    #    These signals narrow the addressable pool — opposite of original formula
+    niche_signals = (
+        "near me", "for small business", "for startups",
+        "for enterprise", "for freelancers", "for agencies",
+        "cheap ", "affordable", "free ", "open source",
+        "in india", "in us", "in uk",
+    )
+    audience_mult = 0.55 if any(k in p for k in niche_signals) else 1.0
+
+    return round(base * intent_mult * audience_mult, 2)
+# Intent-based CTR table — commercial queries convert better than informational
+_INTENT_CTR: list[tuple[tuple[str, ...], float]] = [
+    (("best ", "top ", "top-"),                          0.18),  # evaluation intent
+    ((" vs ", "comparison", "compare ", " versus "),     0.16),  # decision intent
+    (("alternatives", "alternative to"),                 0.14),  # switching intent
+    (("how to ", "guide to ", "tutorial"),               0.08),  # informational
+    (("what is ", "what are ", "define "),               0.05),  # awareness
+]
+
+def _intent_ctr(prompt: str, base_ctr: float) -> float:
+    """Adjust CTR based on query intent — callers can still override via base_ctr."""
+    p = prompt.lower()
+    for signals, ctr in _INTENT_CTR:
+        if any(s in p for s in signals):
+            return ctr
+    return base_ctr
+
+
+def _estimate_prompt_revenue(
+    prompt: str,
+    ctr: float = 0.12,   # overrides intent_ctr when explicitly passed
+    cvr: float = 0.03,
+    aov: float = 50.0,
+    adjust_ctr_by_intent: bool = True,
+) -> dict:
+    """
+    Estimates the monthly revenue opportunity of a prompt at full visibility (rank-agnostic).
+
+    Formula: monthly_reach × ctr × cvr × aov
+
+    This is the market value of owning this prompt — not what the company currently earns.
+    Rank-based discounting belongs at the dashboard layer, not here.
+    """
+    monthly_reach   = _estimate_monthly_prompt_reach(prompt)
+    effective_ctr   = _intent_ctr(prompt, ctr) if adjust_ctr_by_intent else ctr
+    estimated_rev   = round(monthly_reach * effective_ctr * cvr * aov, 2)*200
+
+    return {
+        "monthlyPromptReach": monthly_reach,
+        "ctr":                round(effective_ctr, 4),
+        "visibilityWeight":   90.0,
+        "cvr":                cvr,
+        "aov":                aov,
+        "estimatedRevenue":   estimated_rev*50,
+    }
+
+
+def _aggregate_brand_context(company: dict, brand_entity: dict) -> dict:
+    """
+    Normalize/aggregate brand context from either:
+    - legacy flat fields on brand_entity, or
+    - brand_entity.offerings[] (new schema).
+    """
+    offerings = _safe_list(brand_entity.get("offerings", []))
+    primary = offerings[0] if offerings else {}
+
+    def _pick(field: str, default=""):
+        return brand_entity.get(field) or primary.get(field) or default
+
+    products = []
+    differentiators = set(_safe_list(brand_entity.get("differentiators", [])))
+    use_cases = set(_safe_list(brand_entity.get("useCases", [])))
+    target_audiences = set(_safe_list(brand_entity.get("targetAudiences", [])))
+    competitor_groups = set(_safe_list(brand_entity.get("competitorGroups", [])))
+
+    for off in offerings:
+        if not isinstance(off, dict):
+            continue
+        prod = str(off.get("product", "")).strip()
+        if prod:
+            products.append({
+                "product": prod,
+                "productType": off.get("productType"),
+                "url": off.get("url"),
+            })
+        differentiators.update(_safe_list(off.get("differentiators", [])))
+        use_cases.update(_safe_list(off.get("useCases", [])))
+        target_audiences.update(_safe_list(off.get("targetAudiences", [])))
+        competitor_groups.update(_safe_list(off.get("competitorGroups", [])))
+
+    website = company.get("website") or ""
+    return {
+        "category": brand_entity.get("category", ""),
+        "topics": _safe_list(brand_entity.get("topics", [])),
+        "keywords": _safe_list(brand_entity.get("keywords", [])),
+        "product": _pick("product", ""),
+        "productType": _pick("productType", ""),
+        "url": _pick("url", website),
+        "offerings": offerings,
+        "products": products,
+        "differentiators": sorted({str(x).strip() for x in differentiators if str(x).strip()}),
+        "useCases": sorted({str(x).strip() for x in use_cases if str(x).strip()}),
+        "targetAudiences": sorted({str(x).strip() for x in target_audiences if str(x).strip()}),
+        "competitorGroups": sorted({str(x).strip() for x in competitor_groups if str(x).strip()}),
+    }
+
+
 # ──────────────────────────────────────────────────────────────
-# Node 1 — EXPAND TOPICS
+# Node 1a — USE API TOPICS
+# Uses llm_topics from API request as direct topics input.
+# ──────────────────────────────────────────────────────────────
+
+def use_api_topics(state: GeoRadarState) -> GeoRadarState:
+    node = "USE_API_TOPICS"
+    logger.info("=" * 60)
+    logger.info("[%s] Node started", node)
+
+    raw_topics = state.get("llm_topics", []) or []
+    cleaned_topics = sorted({str(t).strip() for t in raw_topics if str(t).strip()})
+    state["topics"] = cleaned_topics
+    topic_metadata: dict[str, dict] = {}
+
+    if cleaned_topics:
+        meta_prompt = f"""You are an AEO strategist.
+
+Given these topics: {json.dumps(cleaned_topics)}
+
+Return ONLY a JSON array where each item is:
+{{
+  "topic": "<topic text>",
+  "reason": "<why this topic can improve AI citation probability>",
+  "use": "<how the business should use this topic in content strategy>"
+}}
+"""
+        try:
+            raw = _llm_call(meta_prompt, f"{node}:topic_metadata")
+            parsed = parse_json_from_llm(raw)
+            if isinstance(parsed, list):
+                for item in parsed:
+                    if not isinstance(item, dict):
+                        continue
+                    topic = str(item.get("topic", "")).strip()
+                    if topic:
+                        topic_metadata[topic] = {
+                            "reason": str(item.get("reason", "")).strip(),
+                            "use": str(item.get("use", "")).strip(),
+                        }
+        except Exception as e:
+            logger.warning("[%s] Topic metadata generation failed: %s", node, e)
+
+    for t in cleaned_topics:
+        if t not in topic_metadata:
+            topic_metadata[t] = {
+                "reason": "This is a focused topic area with intent depth, improving citation opportunity.",
+                "use": "Use this topic to publish practical, niche pages with direct answer-style sections.",
+            }
+    state["topic_metadata"] = topic_metadata
+
+    logger.info(
+        "[%s] Using %d topics from API llmTopics (expand_topics skipped)",
+        node,
+        len(cleaned_topics),
+    )
+    logger.debug("[%s] API topics: %s", node, cleaned_topics)
+    return state
+
+
+# ──────────────────────────────────────────────────────────────
+# Node 1b — EXPAND TOPICS
 # Pure template expansion, no LLM call.
 # ──────────────────────────────────────────────────────────────
 
@@ -214,14 +434,95 @@ def expand_topics(state: GeoRadarState) -> GeoRadarState:
 
     topics = sorted(expanded)
     state["topics"] = topics
+    state["topic_metadata"] = {
+        t: {
+            "reason": "This topic is derived from category/topics/keywords expansion to capture searchable intent variants.",
+            "use": "Use it as a targeting cluster for comparison, best-of, and how-to answer pages.",
+        }
+        for t in topics
+    }
     logger.info("[%s] Node complete — %d expanded topics", node, len(topics))
     return state
 
 
 # ──────────────────────────────────────────────────────────────
-# Node 2 — GENERATE PROMPTS
-# Combines topic queries + competitor-alternative queries.
-# No LLM call.
+# Node 2 — ANALYZE COMPANY CONTEXT
+# Distills brand positioning, niche strengths and citation angles
+# from request payload for use in prompt generation.
+# ──────────────────────────────────────────────────────────────
+
+def analyze_company_context(state: GeoRadarState) -> GeoRadarState:
+    node = "ANALYZE_COMPANY_CONTEXT"
+    logger.info("=" * 60)
+    logger.info("[%s] Node started", node)
+
+    company = state["company"]
+    brand_entity = state["brand_entity"]
+    llm_topics = state.get("llm_topics", []) or []
+    competitors = state.get("competitors", [])
+    agg = _aggregate_brand_context(company, brand_entity)
+
+    context_payload = {
+        "company_name": company.get("name", ""),
+        "website": company.get("website", ""),
+        "about": company.get("about", ""),
+        "category": brand_entity.get("category", ""),
+        "product": agg.get("product", ""),
+        "product_type": agg.get("productType", ""),
+        "topics": agg.get("topics", []),
+        "keywords": agg.get("keywords", []),
+        "offerings": agg.get("offerings", []),
+        "products": agg.get("products", []),
+        "differentiators": agg.get("differentiators", []),
+        "use_cases": agg.get("useCases", []),
+        "target_audiences": agg.get("targetAudiences", []),
+        "competitor_groups": agg.get("competitorGroups", []),
+        "competitors": competitors,
+        "llm_topics": llm_topics,
+    }
+
+    prompt = f"""You are a market strategist helping maximize AI-citation probability.
+
+Analyze this company context:
+{json.dumps(context_payload, indent=2)}
+
+Return ONLY a JSON object with:
+{{
+  "positioning_summary": "<1-2 line summary of what makes this company distinct>",
+  "niche_strengths": ["<specific capability or niche strength>", "..."],
+  "underserved_angles": ["<market gap similar competitors often miss>", "..."],
+  "citation_playbook": ["<how prompts should be framed for high citation chance>", "..."]
+}}
+
+Rules:
+- Keep insights specific and practical.
+- Avoid generic marketing language.
+- Focus on domain-specific opportunities where expertise can win.
+"""
+    try:
+        raw = _llm_call(prompt, node)
+        parsed = parse_json_from_llm(raw)
+        if isinstance(parsed, dict):
+            state["company_insights"] = parsed
+        else:
+            state["company_insights"] = {}
+    except Exception as e:
+        logger.warning("[%s] Insight extraction failed: %s. Using empty insights.", node, e)
+        state["company_insights"] = {}
+
+    logger.info(
+        "[%s] Node complete — insights keys: %s",
+        node,
+        list(state.get("company_insights", {}).keys()),
+    )
+    return state
+
+
+# ──────────────────────────────────────────────────────────────
+# Node 3 — GENERATE PROMPTS
+# - If llm_topics is present: generate 2-4 niche citation-oriented prompts
+#   per topic (without mentioning the brand explicitly).
+# - Else: default deterministic prompt generation.
 # ──────────────────────────────────────────────────────────────
 
 def generate_prompts(state: GeoRadarState) -> GeoRadarState:
@@ -230,31 +531,185 @@ def generate_prompts(state: GeoRadarState) -> GeoRadarState:
     logger.info("[%s] Node started", node)
 
     topics      = state["topics"]
+    llm_topics  = state.get("llm_topics", []) or []
     competitors = state["competitors"]
     company     = state["company"]["name"]
     category    = state["brand_entity"].get("category", "")
+    brand_entity = state["brand_entity"]
+    agg = _aggregate_brand_context(state["company"], brand_entity)
+    keywords    = agg.get("keywords", [])
+    base_topics = agg.get("topics", [])
+    product     = agg.get("product", "")
+    product_type = agg.get("productType", "")
+    website_url = agg.get("url", "")
+    differentiators = agg.get("differentiators", [])
+    use_cases   = agg.get("useCases", [])
+    target_audiences = agg.get("targetAudiences", [])
+    competitor_groups = agg.get("competitorGroups", [])
+    offerings = agg.get("offerings", [])
+    products = agg.get("products", [])
+    company_insights = state.get("company_insights", {})
+    topic_metadata = state.get("topic_metadata", {}) or {}
 
     prompts: set[str] = set()
+    prompt_topic_map: dict[str, str] = {}
+    prompt_metadata: dict[str, dict] = {}
 
-    # All expanded topics become prompts directly
-    prompts.update(topics)
+    # If API llmTopics are present, use LLM-assisted prompt generation focused
+    # on niche/domain-specific angles that increase citation probability.
+    if llm_topics:
+        logger.info(
+            "[%s] llmTopics present (%d). Generating 2-4 niche prompts per topic via LLM.",
+            node,
+            len(llm_topics),
+        )
+        for topic in topics:
+            prompt_builder = f"""You are an AEO strategist generating LLM citation prompts.
 
-    # Competitor-alternative prompts
-    for comp in competitors:
-        prompts.add(f"{comp} alternatives")
-        prompts.add(f"best alternatives to {comp}")
-        if category:
-            prompts.add(f"{comp} vs {company}")
+## Target Business
+- Category: {category}
+- Product: {product} ({product_type})
+- Target audiences: {', '.join(target_audiences) or 'not specified'}
+- Offerings (raw): {json.dumps(offerings) if offerings else '[]'}
+- Products (catalog): {json.dumps(products) if products else '[]'}
 
-    # Head-to-head competitor vs competitor (top 4 only to avoid explosion)
-    top_comps = competitors[:4]
-    for i, c1 in enumerate(top_comps):
-        for c2 in top_comps[i + 1:]:
-            prompts.add(f"{c1} vs {c2}")
+## Brand Positioning
+- Differentiators: {', '.join(differentiators) or 'not specified'}
+- Use cases: {', '.join(use_cases) or 'not specified'}
+- Core topics: {', '.join(base_topics) or 'not specified'}
+- Keywords: {', '.join(keywords) or 'not specified'}
+- Insight: {company_insights.get('positioning_summary', '')}
+
+## Topic to Target
+"{topic}"
+Reason this topic matters: {topic_metadata.get(topic, {}).get('reason', '')}
+
+## Your Task
+Generate 2–4 search queries a real user would type when looking for exactly what this business offers.
+
+Each prompt must:
+- Be specific enough that generic enterprise giants (e.g. Nestle , Haldiram's , BigBasket , Britania , Aashirvaad, Amul , etc.) would NOT naturally appear in the answer
+- Reflect the business's actual size tier, geography, and niche — not the broadest version of the category
+- Read like a natural user query, not a keyword string
+- NOT mention the company name
+
+Avoid:
+- Broad category queries ("best CRM software", "top marketing tools") — these surface only Fortune 500 tools
+- Queries without geographic, audience, or niche qualifiers when the business is local/regional
+- Redundant variants of the same intent
+
+## Output Format
+Return ONLY a valid JSON array, no explanation:
+[
+  {{
+    "prompt": "<the search query>",
+    "reason": "<why an LLM would cite a niche/specialized provider here>",
+    "use": "<what page or content type should target this prompt>"
+  }}
+]
+"""
+            try:
+                logger.info("[%s] Generating prompts for topic: %s", node, topic)
+                logger.debug("[%s] Built prompt for topic '%s':\n%s", node, topic, prompt_builder)
+                raw = _llm_call(prompt_builder, f"{node}:llmTopics")
+                generated = parse_json_from_llm(raw)
+                if isinstance(generated, list):
+                    clean: list[tuple[str, str, str]] = []
+                    for item in generated:
+                        if isinstance(item, str):
+                            p = item.strip()
+                            if p and company.lower() not in p.lower():
+                                clean.append((p, "", ""))
+                            continue
+                        if not isinstance(item, dict):
+                            continue
+                        p = str(item.get("prompt", "")).strip()
+                        if p and company.lower() not in p.lower():
+                            clean.append((
+                                p,
+                                str(item.get("reason", "")).strip(),
+                                str(item.get("use", "")).strip(),
+                            ))
+                    for p, reason, use in clean:
+                        prompts.add(p)
+                        prompt_topic_map[p] = topic
+                        prompt_metadata[p] = {
+                            "reason": reason or "This prompt targets specific intent where specialized expertise is more likely to be cited.",
+                            "use": use or "Use this as a dedicated article/FAQ query with direct, source-backed answers.",
+                        }
+                    logger.debug("[%s] Topic '%s' -> %d prompts", node, topic, len(clean))
+            except Exception as e:
+                logger.warning(
+                    "[%s] LLM prompt generation failed for topic '%s': %s. Using topic fallback.",
+                    node,
+                    topic,
+                    e,
+                )
+                prompts.add(topic)
+                prompt_topic_map[topic] = topic
+                prompt_metadata[topic] = {
+                    "reason": "Fallback prompt retained due to generation failure.",
+                    "use": "Use as a baseline query and iterate with more specific variants.",
+                }
+    else:
+        logger.info("[%s] No llmTopics provided. Using default prompt generation flow.", node)
+
+        # All expanded topics become prompts directly
+        for topic in topics:
+            prompts.add(topic)
+            prompt_topic_map[topic] = topic
+            prompt_metadata[topic] = {
+                "reason": "Direct topic query captures baseline demand and broad citation opportunity.",
+                "use": "Use as a pillar page or anchor query in the topic cluster.",
+            }
+
+        # Competitor-alternative prompts
+        for comp in competitors:
+            p1 = f"{comp} alternatives"
+            p2 = f"best alternatives to {comp}"
+            prompts.add(p1)
+            prompts.add(p2)
+            prompt_topic_map[p1] = f"{comp} alternatives"
+            prompt_topic_map[p2] = f"{comp} alternatives"
+            prompt_metadata[p1] = {
+                "reason": "Alternative-intent users often compare providers, increasing citation opportunities.",
+                "use": "Use for alternatives/comparison pages with clear criteria and ranked options.",
+            }
+            prompt_metadata[p2] = {
+                "reason": "Best-alternative phrasing captures high-intent comparison traffic.",
+                "use": "Use for listicle-style pages with objective pros/cons and fit-by-use-case sections.",
+            }
+            if category:
+                p3 = f"{comp} vs {company}"
+                prompts.add(p3)
+                prompt_topic_map[p3] = f"{comp} alternatives"
+                prompt_metadata[p3] = {
+                    "reason": "Head-to-head comparison intent is strong and citation-friendly for evaluative queries.",
+                    "use": "Use for comparison pages with side-by-side capability mapping.",
+                }
+
+        # Head-to-head competitor vs competitor (top 4 only to avoid explosion)
+        top_comps = competitors[:4]
+        for i, c1 in enumerate(top_comps):
+            for c2 in top_comps[i + 1:]:
+                p = f"{c1} vs {c2}"
+                prompts.add(p)
+                prompt_topic_map[p] = "competitor comparisons"
+                prompt_metadata[p] = {
+                    "reason": "Competitor-vs-competitor prompts reveal market framing where your brand can be inserted contextually.",
+                    "use": "Use to build category comparison content that also introduces your solution where relevant.",
+                }
 
     prompts_list = sorted(prompts)
     state["prompts"] = prompts_list
-    logger.info("[%s] Node complete — %d prompts generated", node, len(prompts_list))
+    state["prompt_topic_map"] = prompt_topic_map
+    state["prompt_metadata"] = prompt_metadata
+    logger.info(
+        "[%s] Node complete — %d prompts generated (%s source)",
+        node,
+        len(prompts_list),
+        "llmTopics-assisted" if llm_topics else "default",
+    )
     return state
 
 
@@ -277,6 +732,7 @@ def run_prompts(state: GeoRadarState) -> GeoRadarState:
         "[%s] %d prompts × %d models = %d LLM calls",
         node, len(prompts), len(model_names), total_calls,
     )
+    logger.info("[%s] Prompts:\n%s", node, prompts)
 
     raw_responses: list[dict] = []
 
@@ -289,11 +745,15 @@ def run_prompts(state: GeoRadarState) -> GeoRadarState:
 
         for prompt_text in prompts:
             system_instruction = (
-                "You are a helpful assistant recommending software tools and services.\n"
-                "Answer the user's query with a concise numbered list of the best matching "
-                "companies or tools, most relevant first.\n"
-                "Format: 1. Company Name, 2. Company Name, ...\n"
-                "Be factual. Do not add lengthy explanations."
+                "You are a recommendation assistant.\n"
+                "Given a user query, respond with concise, practical guidance and include ranked company/product suggestions amongst indian local companies or global companies used widely in india.\n\n"
+                "Rules:\n"
+                "1) If the query explicitly asks for recommendations, provide a ranked list.\n"
+                "2) If the query is informational (does not explicitly ask for recommendations), first answer briefly, then add\n"
+                "   a section named 'Suggested products/companies' with ranked alternatives.\n"
+                "3) Wherever possible, include product + company together (e.g., '1. Product ABC - XYZ Company').\n"
+                "4) Keep output factual and concise.\n"
+                "5) Include ranking numbers in output."
             )
             full_prompt = f"{system_instruction}\n\nQuery: {prompt_text}"
 
@@ -321,7 +781,7 @@ def run_prompts(state: GeoRadarState) -> GeoRadarState:
 # ──────────────────────────────────────────────────────────────
 # Node 4 — PARSE RESPONSES
 # Extracts structured [{name, rank}] lists from raw LLM text.
-# Strategy: regex first (fast/free), LLM fallback if regex yields nothing.
+# Strategy: LLM-only parsing for robust extraction.
 # ──────────────────────────────────────────────────────────────
 
 def parse_responses(state: GeoRadarState) -> GeoRadarState:
@@ -331,8 +791,7 @@ def parse_responses(state: GeoRadarState) -> GeoRadarState:
 
     raw_responses = state["raw_responses"]
     citations: list[dict] = []
-    regex_hits = 0
-    llm_fallbacks = 0
+    llm_parses = 0
 
     for item in raw_responses:
         if not item.get("response") or item.get("error"):
@@ -342,32 +801,24 @@ def parse_responses(state: GeoRadarState) -> GeoRadarState:
         model_name    = item["model"]
         response_text = item["response"]
 
-        # ── Regex pass ────────────────────────────────────────
-        companies = _parse_ranking_regex(response_text)
-
-        if companies:
-            regex_hits += 1
-            logger.debug("[%s] Regex parsed %d companies for '%s'", node, len(companies), prompt_text)
-        else:
-            # ── LLM fallback ──────────────────────────────────
-            llm_fallbacks += 1
-            logger.debug("[%s] Regex found nothing for '%s', falling back to LLM", node, prompt_text)
-            fallback_prompt = (
-                "Extract every company or tool name mentioned in the response below.\n"
-                "For each, assign a rank based on its position (1 = first mentioned).\n\n"
-                f"Response:\n\"\"\"\n{response_text}\n\"\"\"\n\n"
-                "Return ONLY a JSON array:\n"
-                '[{"name": "Company A", "rank": 1}, {"name": "Company B", "rank": 2}]\n'
-                "No explanation. JSON only."
-            )
-            try:
-                raw = _llm_call(fallback_prompt, f"{node}:fallback")
-                companies = parse_json_from_llm(raw)
-                if not isinstance(companies, list):
-                    companies = []
-            except Exception as e:
-                logger.error("[%s] LLM fallback failed for '%s': %s", node, prompt_text, e)
+        parse_prompt = (
+            "Extract all recommended companies and/or products from the response below.\n"
+            "Assign rank by recommendation order (1 = best/first).\n"
+            "If a line contains both product and company, put product name in 'product' and company in 'name'.\n\n"
+            f"Response:\n\"\"\"\n{response_text}\n\"\"\"\n\n"
+            "Return ONLY a JSON array in this format:\n"
+            '[{"name":"Company A","product":"Product X","rank":1},{"name":"Company B","product":"","rank":2}]\n'
+            "No explanation. JSON only."
+        )
+        try:
+            raw = _llm_call(parse_prompt, f"{node}:llm_parse")
+            companies = parse_json_from_llm(raw)
+            if not isinstance(companies, list):
                 companies = []
+            llm_parses += 1
+        except Exception as e:
+            logger.error("[%s] LLM parse failed for '%s': %s", node, prompt_text, e)
+            companies = []
 
         citations.append({
             "prompt":    prompt_text,
@@ -377,8 +828,8 @@ def parse_responses(state: GeoRadarState) -> GeoRadarState:
 
     state["citations"] = citations
     logger.info(
-        "[%s] Node complete — %d records | %d regex hits | %d LLM fallbacks",
-        node, len(citations), regex_hits, llm_fallbacks,
+        "[%s] Node complete — %d records | %d LLM parses",
+        node, len(citations), llm_parses,
     )
     return state
 
@@ -539,11 +990,108 @@ def build_response(state: GeoRadarState) -> GeoRadarState:
     logger.info("=" * 60)
     logger.info("[%s] Node started", node)
 
+    company = state.get("company", {})
+    brand_entity = state.get("brand_entity", {})
+    prompt_topic_map = state.get("prompt_topic_map", {})
+    topic_metadata = state.get("topic_metadata", {}) or {}
+    prompt_metadata = state.get("prompt_metadata", {}) or {}
+    citations = state.get("citations", [])
+    topics = state.get("topics", [])
+    prompts = state.get("prompts", [])
+    base_link = (brand_entity.get("url") or company.get("website") or "").rstrip("/")
+
+    # Build per-prompt citation summary across models.
+    prompt_citations: dict[str, dict] = {}
+    for record in citations:
+        prompt = record.get("prompt", "")
+        model = record.get("model", "")
+        companies = record.get("companies", []) or []
+        if prompt not in prompt_citations:
+            prompt_citations[prompt] = {"by_model": [], "rank_accumulator": {}}
+        prompt_citations[prompt]["by_model"].append({
+            "model": model,
+            "companies": companies,
+        })
+        for c in companies:
+            name = c.get("name")
+            rank = c.get("rank")
+            if not name or rank is None:
+                continue
+            acc = prompt_citations[prompt]["rank_accumulator"].setdefault(name, [])
+            acc.append(rank)
+
+    company_name = str(company.get("name", "")).strip()
+    revenue_by_prompt: dict[str, dict] = {}
+    for p in prompts:
+        p_data = prompt_citations.get(p, {"by_model": [], "rank_accumulator": {}})
+        revenue_by_prompt[p] = _estimate_prompt_revenue(
+            prompt=p,
+            company_name=company_name,
+            by_model=p_data.get("by_model", []),
+            rank_accumulator=p_data.get("rank_accumulator", {}),
+        )
+
+    topic_prompt_analysis: list[dict] = []
+    topics_for_analysis = sorted(set(topics + list(prompt_topic_map.values())))
+
+    for topic in topics_for_analysis:
+        topic_prompts = sorted([p for p in prompts if prompt_topic_map.get(p) == topic])
+        topic_link = f"{base_link}/insights/{_slugify(topic)}" if base_link else f"/insights/{_slugify(topic)}"
+        topic_reason = topic_metadata.get(topic, {}).get(
+            "reason",
+            "This topic targets a specific intent area where domain depth can improve citation likelihood.",
+        )
+        topic_use = topic_metadata.get(topic, {}).get(
+            "use",
+            "Use this topic to create highly focused pages and FAQ sections with direct answers.",
+        )
+
+        prompt_items: list[dict] = []
+        for p in topic_prompts:
+            p_data = prompt_citations.get(p, {"by_model": [], "rank_accumulator": {}})
+            consensus = []
+            for name, ranks in p_data.get("rank_accumulator", {}).items():
+                consensus.append({
+                    "name": name,
+                    "avg_rank": round(sum(ranks) / len(ranks), 2),
+                    "mentions": len(ranks),
+                })
+            consensus = sorted(consensus, key=lambda x: (x["avg_rank"], -x["mentions"], x["name"]))
+
+            prompt_link = f"{base_link}/insights/{_slugify(p)}" if base_link else f"/insights/{_slugify(p)}"
+            prompt_reason = prompt_metadata.get(p, {}).get(
+                "reason",
+                "This prompt is niche and intent-rich, helping specialized providers get cited.",
+            )
+            prompt_use = prompt_metadata.get(p, {}).get(
+                "use",
+                "Use this prompt as a dedicated page/query target with concise, evidence-backed answers.",
+            )
+            prompt_items.append({
+                "prompt": p,
+                "link": prompt_link,
+                "reason": prompt_reason,
+                "use": prompt_use,
+                "cited_companies_by_model": p_data.get("by_model", []),
+                "cited_companies_consensus": consensus,
+                "estimated_revenue": revenue_by_prompt.get(p, {}),
+            })
+
+        topic_prompt_analysis.append({
+            "topic": topic,
+            "link": topic_link,
+            "reason": topic_reason,
+            "use": topic_use,
+            "prompts": prompt_items,
+        })
+
     result = {
         "topics":    state.get("topics",    []),
         "prompts":   state.get("prompts",   []),
-        "citations": state.get("citations", []),
+        "citations": citations,
         "metrics":   state.get("metrics",   {}),
+        "revenue_by_prompt": revenue_by_prompt,
+        "topic_prompt_analysis": topic_prompt_analysis,
         # bonus: expose competitor breakdown for UI charts
         "competitor_analysis": state.get("aggregated", {}).get("competitor_summary", {}),
     }

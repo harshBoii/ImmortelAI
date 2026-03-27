@@ -57,17 +57,37 @@ class RadarCompanyInput(BaseModel):
     name: str
     website: Optional[str] = None
     linkedin: Optional[str] = None
+    about: Optional[str] = None
+
+
+class RadarOfferingInput(BaseModel):
+    product: str
+    productType: Optional[str] = None
+    url: Optional[str] = None
+    differentiators: List[str] = Field(default_factory=list)
+    useCases: List[str] = Field(default_factory=list)
+    targetAudiences: List[str] = Field(default_factory=list)
+    competitorGroups: List[str] = Field(default_factory=list)
 
 
 class RadarBrandEntityInput(BaseModel):
     category: Optional[str] = None
     topics: List[str] = Field(default_factory=list)
     keywords: List[str] = Field(default_factory=list)
+    product: Optional[str] = None
+    productType: Optional[str] = None
+    url: Optional[str] = None
+    differentiators: List[str] = Field(default_factory=list)
+    useCases: List[str] = Field(default_factory=list)
+    targetAudiences: List[str] = Field(default_factory=list)
+    competitorGroups: List[str] = Field(default_factory=list)
+    offerings: List[RadarOfferingInput] = Field(default_factory=list)
 
 
 class CompanyRadarRequest(BaseModel):
     company: RadarCompanyInput
     brandEntity: RadarBrandEntityInput
+    llmTopics: List[str] = Field(default_factory=list)
     competitors: List[str] = Field(default_factory=list)
     models: List[str] = Field(default_factory=list)
     session_id: str = "company-radar-session"
@@ -138,6 +158,7 @@ async def company_radar(payload: CompanyRadarRequest):
         {
             "company": payload.company.model_dump(),
             "brand_entity": payload.brandEntity.model_dump(),
+            "llm_topics": payload.llmTopics,
             "competitors": payload.competitors,
             "models": payload.models,
             "topics": [],
@@ -154,11 +175,23 @@ async def company_radar(payload: CompanyRadarRequest):
 
     # GeoRadarState.build_response stores the final payload in state["result"]
     result = state.get("result") or {}
+    print("result", result)
     return {
         "topics": result.get("topics", []),
         "prompts": result.get("prompts", []),
+        "raw_responses_with_prompt": [
+            {
+                "prompt": item.get("prompt", ""),
+                "model": item.get("model", ""),
+                "response": item.get("response", ""),
+                "error": item.get("error"),
+            }
+            for item in state.get("raw_responses", [])
+        ],
         "citations": result.get("citations", []),
         "metrics": result.get("metrics", {}),
+        "revenue_by_prompt": result.get("revenue_by_prompt", {}),
+        "topic_prompt_analysis": result.get("topic_prompt_analysis", []),
     }
 
 
@@ -190,6 +223,7 @@ async def company_bounty(payload: CompanyBountyRequest):
         config={"configurable": {"thread_id": payload.session_id}},
     )
 
+    print("state", state)
     return state.get("result") or {}
 
 

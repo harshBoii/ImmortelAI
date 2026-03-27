@@ -104,6 +104,7 @@ def _llm_call(prompt: str, node_name: str, llm_client: ChatOpenAI | None = None)
     """Wraps an LLM invocation with timing and error logging."""
     client = llm_client or llm
     logger.debug("[%s] LLM call started (%d chars prompt)", node_name, len(prompt))
+    logger.debug("[%s] Prompt:\n%s", node_name, prompt)
     t0 = time.time()
     try:
         response = client.invoke(prompt)

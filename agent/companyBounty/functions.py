@@ -4,6 +4,7 @@ import logging
 from typing import TypedDict
 from dotenv import load_dotenv
 import os
+import re
 
 from langchain_openai import ChatOpenAI
 
@@ -47,8 +48,11 @@ class BountyState(TypedDict):
     models: list         # ["gpt-4o", "claude-3.5", ...]
 
     # ── Pipeline stages (populated by nodes) ──────────────────
-    niches: list         # [{topic, description}]
-    niche_prompts: list  # [{topic, description, prompts: [str]}]
+    niches: list         # [{topic, description, difficulty, reason?, use?}]
+    niche_prompts: list  # [{topic, description, difficulty, prompts:[{prompt,reason,use}]}]
+    prompts: list        # flattened prompt strings for LLM calls
+    raw_responses: list  # [{prompt, model, response, ?error}]
+    citations: list      # [{prompt, model, companies:[{name,product?,rank}]}]
     result: dict         # final assembled output
 
     # ── Session ────────────────────────────────────────────────
@@ -85,6 +89,62 @@ def _parse_json(raw: str):
     return []
 
 
+def _slugify(text: str) -> str:
+    slug = re.sub(r"[^a-z0-9]+", "-", str(text).lower()).strip("-")
+    return slug or "item"
+
+
+def _estimate_monthly_prompt_reach(prompt: str) -> float:
+    p = prompt.lower()
+    score = 800.0
+    if any(k in p for k in ["best", "top", "alternatives", "vs", "comparison"]):
+        score += 1200.0
+    if any(k in p for k in ["how to", "guide", "tutorial"]):
+        score += 500.0
+    if any(k in p for k in ["near me", "for moms", "for kids", "for small business"]):
+        score += 350.0
+    score += min(len(prompt.split()) * 45.0, 450.0)
+    return round(score, 2)
+
+
+def _estimate_prompt_revenue(
+    prompt: str,
+    company_name: str,
+    by_model: list[dict],
+    rank_accumulator: dict[str, list[int]],
+    ctr: float = 0.12,
+    cvr: float = 0.03,
+    aov: float = 50.0,
+) -> dict:
+    monthly_prompt_reach = _estimate_monthly_prompt_reach(prompt)
+    company_key = (company_name or "").strip().lower()
+    company_ranks = rank_accumulator.get(company_name, []) or rank_accumulator.get(company_key, [])
+    if not company_ranks and company_key:
+        for k, ranks in rank_accumulator.items():
+            if str(k).strip().lower() == company_key:
+                company_ranks = ranks
+                break
+
+    total_model_responses = max(len(by_model), 1)
+    mention_rate = (len(company_ranks) / total_model_responses) if company_ranks else 0.0
+    avg_rank = (sum(company_ranks) / len(company_ranks)) if company_ranks else None
+    rank_factor = max(0.0, min(1.0, (11.0 - (avg_rank or 11.0)) / 10.0))
+    visibility_weight = round((mention_rate * rank_factor) if company_ranks else 0.05, 4)
+
+    estimated_revenue = round(
+        monthly_prompt_reach * visibility_weight * ctr * cvr * aov,
+        2,
+    )
+    return {
+        "monthlyPromptReach": monthly_prompt_reach,
+        "visibilityWeight": visibility_weight,
+        "ctr": ctr,
+        "cvr": cvr,
+        "aov": aov,
+        "estimatedRevenue": estimated_revenue,
+    }
+
+
 def _llm_call(prompt: str, node_name: str) -> str:
     logger.debug("[%s] LLM call started (%d chars prompt)", node_name, len(prompt))
     t0 = time.time()
@@ -107,7 +167,7 @@ def _llm_call(prompt: str, node_name: str) -> str:
 # where the company can establish topical authority for AEO.
 # ──────────────────────────────────────────────────────────────
 
-NICHE_COUNT = 10
+NICHE_COUNT = 5
 
 def discover_niches(state: BountyState) -> BountyState:
     node = "DISCOVER_NICHES"
@@ -126,45 +186,46 @@ def discover_niches(state: BountyState) -> BountyState:
     logger.info("[%s] Company: %s | Category: %s", node, company_name, category)
     logger.info("[%s] Topics: %s | Keywords: %s", node, topics, keywords)
 
-    prompt = f"""You are an AEO (Answer Engine Optimization) strategist.
+    prompt = f"""You are an AEO strategist identifying niche topics where a company can realistically become the cited authority in AI search engines (ChatGPT, Perplexity, Gemini).
 
-A company needs to discover high-potential niche topics where it can establish
-topical authority and increase its chances of being cited by AI search engines
-(ChatGPT, Perplexity, Gemini, etc.).
-
-Company details:
+## Company
 - Name: {company_name}
 - Website: {company.get("website", "N/A")}
 - Category: {category}
-- Core topics: {json.dumps(topics)}
-- Keywords: {json.dumps(keywords)}
-- Main competitors: {json.dumps(competitors)}
+- Core topics: {', '.join(topics) or 'not specified'}
+- Keywords: {', '.join(keywords) or 'not specified'}
+- Main competitors: {', '.join(competitors) or 'not specified'}
 
-Generate exactly {NICHE_COUNT} highly specific niche topics for this company.
+## Task
+Generate exactly {NICHE_COUNT} niche topics this company should target for topical authority.
 
-Requirements for each niche:
-1. Must be specific enough to target with focused content (not generic).
-2. Must be closely aligned with the company's product, expertise, or category.
-3. Should represent a topic where users actively search for answers.
-4. Should be areas where the company can realistically become an authority.
-5. Include a mix of product-specific, use-case, and audience-specific niches.
+A good niche topic:
+- Is narrow enough to own with focused content (not a broad category)
+- Maps directly to the company's product, expertise, or a specific use case
+- Has real user search intent behind it — people actively ask questions about it
+- Has a realistic path to authority given the company's current market position
 
-For each niche, also assess a difficulty level — "easy", "medium", or "hard" — based on:
-- The company's current market position and existing authority in that area.
-- How many strong competitors already dominate the topic.
-- How broad or narrow the topic is (narrower = easier to own).
+## Difficulty Rating
+Assign one of: `easy` · `medium` · `hard`
 
-Difficulty guidelines:
-- "easy"   → Narrow niche with few competitors; the company already has relevant expertise.
-- "medium" → Moderate competition or the company has partial coverage; achievable with focused effort.
-- "hard"   → Broad topic, heavily contested by established competitors; requires significant investment.
+| Rating | Signal |
+|--------|--------|
+| easy   | Narrow, low competition; company already has relevant expertise or content |
+| medium | Moderate competition or partial coverage; achievable with focused effort |
+| hard   | Broad or heavily contested by established players; high investment required |
 
-Return ONLY a JSON array with this structure (no extra text):
+Aim for a mix of difficulties — not all easy, not all hard.
+Also vary the type: include product-specific, use-case, and audience-specific niches.
+
+## Output
+Return ONLY a valid JSON array, no explanation:
 [
-  {{"topic": "short niche topic title", "description": "one sentence explaining why this niche is valuable for AEO", "difficulty": "easy|medium|hard"}},
-  ...
+  {{
+    "topic": "<short niche topic title>",
+    "description": "<one sentence — why this is a high-value AEO opportunity for this company and why this company's function or products can become the cited authority in AI search engines >",
+    "difficulty": "easy|medium|hard"
+  }}
 ]"""
-
     raw = _llm_call(prompt, node)
     niches = _parse_json(raw)
 
@@ -184,7 +245,7 @@ Return ONLY a JSON array with this structure (no extra text):
 # prompts/questions that users might search for.
 # ──────────────────────────────────────────────────────────────
 
-PROMPTS_PER_NICHE = 8
+PROMPTS_PER_NICHE = 3
 
 def generate_niche_prompts(state: BountyState) -> BountyState:
     node = "GENERATE_NICHE_PROMPTS"
@@ -214,7 +275,7 @@ Company: {company_name} (Category: {category})
 Niche topic: {topic}
 Context: {description}
 
-Generate exactly {PROMPTS_PER_NICHE} search prompts/questions that real users would type
+Generate {PROMPTS_PER_NICHE} search prompts/questions that real users would type
 into AI search engines (ChatGPT, Perplexity, Google AI Overview, etc.) related to this niche.
 
 Requirements:
@@ -225,34 +286,139 @@ Requirements:
    authoritative content on that niche.
 5. Do NOT include the company name in the prompts — they should be generic searches.
 
-Return ONLY a JSON array of strings (no extra text):
-["prompt 1", "prompt 2", ...]"""
+Return ONLY a JSON array (no extra text). Each item must include:
+{{
+  "prompt": "<query text>",
+  "reason": "<why this prompt can increase citation probability>",
+  "use": "<what content/page should target this prompt>"
+}}
+"""
 
         raw = _llm_call(prompt, f"{node}:{topic}")
-        prompts = _parse_json(raw)
+        prompts_obj = _parse_json(raw)
 
-        if not isinstance(prompts, list):
-            prompts = []
+        prompts_list: list[dict] = []
+        if isinstance(prompts_obj, list):
+            for item in prompts_obj:
+                if isinstance(item, str) and item.strip():
+                    prompts_list.append({"prompt": item.strip(), "reason": "", "use": ""})
+                elif isinstance(item, dict) and str(item.get("prompt", "")).strip():
+                    prompts_list.append({
+                        "prompt": str(item.get("prompt", "")).strip(),
+                        "reason": str(item.get("reason", "")).strip(),
+                        "use": str(item.get("use", "")).strip(),
+                    })
 
-        prompts = [p for p in prompts if isinstance(p, str) and p.strip()]
+        prompts_list = prompts_list[:PROMPTS_PER_NICHE]
 
         niche_prompts.append({
             "topic": topic,
             "description": description,
             "difficulty": niche.get("difficulty", "medium"),
-            "prompts": prompts,
+            "prompts": prompts_list,
         })
 
-        logger.info("[%s] → %d prompts generated for '%s'", node, len(prompts), topic)
+        logger.info("[%s] → %d prompts generated for '%s'", node, len(prompts_list), topic)
 
     state["niche_prompts"] = niche_prompts
+    flat_prompts = [p["prompt"] for np in niche_prompts for p in np.get("prompts", []) if p.get("prompt")]
+    state["prompts"] = sorted({p for p in flat_prompts if p})
     total = sum(len(np["prompts"]) for np in niche_prompts)
     logger.info("[%s] Node complete — %d niches, %d total prompts", node, len(niche_prompts), total)
     return state
 
 
 # ──────────────────────────────────────────────────────────────
-# Node 3 — BUILD RESPONSE
+# Node 3 — RUN PROMPTS
+# Executes prompts against requested LLM models.
+# ──────────────────────────────────────────────────────────────
+
+def run_prompts(state: BountyState) -> BountyState:
+    node = "RUN_PROMPTS"
+    logger.info("=" * 60)
+    logger.info("[%s] Node started", node)
+
+    prompts = state.get("prompts", [])
+    model_names = state.get("models", [])
+    total_calls = len(prompts) * len(model_names)
+    logger.info("[%s] %d prompts × %d models = %d LLM calls", node, len(prompts), len(model_names), total_calls)
+
+    raw_responses: list[dict] = []
+    for model_name in model_names:
+        client = ChatOpenAI(model=model_name) if str(model_name).startswith("gpt") else llm
+        for prompt_text in prompts:
+            system_instruction = (
+                "You are a recommendation assistant.\n"
+                "Given a user query, respond with concise, practical guidance and include ranked company/product suggestions amongst indian local companies or global companies used widely in india.\n\n"
+                "Rules:\n"
+                "1) If the query explicitly asks for recommendations, provide a ranked list.\n"
+                "2) If the query is informational (does not explicitly ask for recommendations), first answer briefly, then add\n"
+                "   a section named 'Suggested products/companies' with ranked alternatives.\n"
+                "3) Wherever possible, include product + company together (e.g., '1. Product ABC - XYZ Company').\n"
+                "4) Keep output factual and concise.\n"
+                "5) Include ranking numbers in output."
+            )
+            full_prompt = f"{system_instruction}\n\nQuery: {prompt_text}"
+            try:
+                raw = _llm_call(full_prompt, f"{node}:{model_name}")
+                raw_responses.append({"prompt": prompt_text, "model": model_name, "response": raw})
+            except Exception as e:
+                raw_responses.append({"prompt": prompt_text, "model": model_name, "response": "", "error": str(e)})
+
+    state["raw_responses"] = raw_responses
+    logger.info("[%s] Node complete — %d raw responses stored", node, len(raw_responses))
+    return state
+
+
+# ──────────────────────────────────────────────────────────────
+# Node 4 — PARSE RESPONSES
+# LLM-only extraction of cited companies/products and ranks.
+# ──────────────────────────────────────────────────────────────
+
+def parse_responses(state: BountyState) -> BountyState:
+    node = "PARSE_RESPONSES"
+    logger.info("=" * 60)
+    logger.info("[%s] Node started", node)
+
+    raw_responses = state.get("raw_responses", [])
+    citations: list[dict] = []
+    parsed_count = 0
+
+    for item in raw_responses:
+        if not item.get("response") or item.get("error"):
+            continue
+        prompt_text = item.get("prompt", "")
+        model_name = item.get("model", "")
+        response_text = item.get("response", "")
+
+        parse_prompt = (
+            "Extract all recommended companies and/or products from the response below.\n"
+            "Assign rank by recommendation order (1 = best/first).\n"
+            "If a line contains both product and company, put product name in 'product' and company in 'name'.\n\n"
+            f"Response:\n\"\"\"\n{response_text}\n\"\"\"\n\n"
+            "Return ONLY a JSON array in this format:\n"
+            '[{"name":"Company A","product":"Product X","rank":1},{"name":"Company B","product":"","rank":2}]\n'
+            "No explanation. JSON only."
+        )
+        try:
+            raw = _llm_call(parse_prompt, f"{node}:llm_parse")
+            companies = _parse_json(raw)
+            if not isinstance(companies, list):
+                companies = []
+            parsed_count += 1
+        except Exception as e:
+            logger.error("[%s] LLM parse failed for '%s': %s", node, prompt_text, e)
+            companies = []
+
+        citations.append({"prompt": prompt_text, "model": model_name, "companies": companies})
+
+    state["citations"] = citations
+    logger.info("[%s] Node complete — %d citation records | %d parses", node, len(citations), parsed_count)
+    return state
+
+
+# ──────────────────────────────────────────────────────────────
+# Node 5 — BUILD RESPONSE
 # Assembles the final structured output.
 # ──────────────────────────────────────────────────────────────
 
@@ -262,6 +428,39 @@ def build_response(state: BountyState) -> BountyState:
     logger.info("[%s] Node started", node)
 
     niche_prompts = state.get("niche_prompts", [])
+    citations = state.get("citations", [])
+    raw_responses = state.get("raw_responses", [])
+    company = state.get("company", {})
+    base_link = (state.get("brand_entity", {}).get("url") or company.get("website") or "").rstrip("/")
+
+    # build citation index by prompt
+    prompt_citations: dict[str, dict] = {}
+    for record in citations:
+        p = record.get("prompt", "")
+        if p not in prompt_citations:
+            prompt_citations[p] = {"by_model": [], "rank_accumulator": {}}
+        prompt_citations[p]["by_model"].append({
+            "model": record.get("model", ""),
+            "companies": record.get("companies", []),
+        })
+        for c in record.get("companies", []) or []:
+            name = c.get("name")
+            rank = c.get("rank")
+            if not name or rank is None:
+                continue
+            prompt_citations[p]["rank_accumulator"].setdefault(name, []).append(rank)
+
+    all_prompts = [p.get("prompt", "") for np in niche_prompts for p in np.get("prompts", []) if p.get("prompt")]
+    revenue_by_prompt: dict[str, dict] = {}
+    company_name = str(company.get("name", "")).strip()
+    for p in all_prompts:
+        p_data = prompt_citations.get(p, {"by_model": [], "rank_accumulator": {}})
+        revenue_by_prompt[p] = _estimate_prompt_revenue(
+            prompt=p,
+            company_name=company_name,
+            by_model=p_data.get("by_model", []),
+            rank_accumulator=p_data.get("rank_accumulator", {}),
+        )
 
     result = {
         "niches": [
@@ -269,8 +468,8 @@ def build_response(state: BountyState) -> BountyState:
                 "topic": np["topic"],
                 "description": np.get("description", ""),
                 "difficulty": np.get("difficulty", "medium"),
-                "prompts": np["prompts"],
-                "prompt_count": len(np["prompts"]),
+                "prompts": np.get("prompts", []),
+                "prompt_count": len(np.get("prompts", [])),
             }
             for np in niche_prompts
         ],
@@ -284,6 +483,63 @@ def build_response(state: BountyState) -> BountyState:
             },
         },
     }
+
+    # Enriched analysis similar to company/radar
+    topic_prompt_analysis: list[dict] = []
+    for np in niche_prompts:
+        topic = np.get("topic", "")
+        if not topic:
+            continue
+        topic_link = f"{base_link}/insights/{_slugify(topic)}" if base_link else f"/insights/{_slugify(topic)}"
+        topic_reason = np.get("description", "")
+        topic_use = "Use this niche topic to create dedicated AEO pages that answer high-intent questions."
+
+        prompt_items: list[dict] = []
+        for p_obj in np.get("prompts", []):
+            p_text = p_obj.get("prompt", "") if isinstance(p_obj, dict) else str(p_obj)
+            if not p_text:
+                continue
+            p_link = f"{base_link}/insights/{_slugify(p_text)}" if base_link else f"/insights/{_slugify(p_text)}"
+            prompt_items.append({
+                "prompt": p_text,
+                "link": p_link,
+                "reason": (p_obj.get("reason") if isinstance(p_obj, dict) else "") or "Niche, intent-rich query more likely to cite specialized providers.",
+                "use": (p_obj.get("use") if isinstance(p_obj, dict) else "") or "Target this prompt with a focused FAQ/article page.",
+                "cited_companies_by_model": prompt_citations.get(p_text, {}).get("by_model", []),
+                "estimated_revenue": revenue_by_prompt.get(p_text, {}),
+            })
+
+        topic_prompt_analysis.append({
+            "topic": topic,
+            "link": topic_link,
+            "reason": topic_reason,
+            "use": topic_use,
+            "prompts": prompt_items,
+        })
+
+    result["topic_prompt_analysis"] = topic_prompt_analysis
+    result["raw_responses_with_prompt"] = [
+        {
+            "prompt": item.get("prompt", ""),
+            "model": item.get("model", ""),
+            "response": item.get("response", ""),
+            "error": item.get("error"),
+        }
+        for item in raw_responses
+    ]
+    responses_by_prompt: dict[str, list[dict]] = {}
+    for item in raw_responses:
+        p = item.get("prompt", "")
+        if not p:
+            continue
+        responses_by_prompt.setdefault(p, []).append({
+            "model": item.get("model", ""),
+            "response": item.get("response", ""),
+            "error": item.get("error"),
+        })
+    result["responses_by_prompt"] = responses_by_prompt
+    result["revenue_by_prompt"] = revenue_by_prompt
+    result["citations"] = citations
 
     state["result"] = result
     logger.info(
