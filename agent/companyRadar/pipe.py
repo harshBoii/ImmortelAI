@@ -13,6 +13,7 @@ from agent.companyRadar.functions import (
     aggregate_citations,
     compute_metrics,
     build_response,
+    post_result_to_api,
 )
 
 
@@ -56,6 +57,8 @@ def route_topics(state: GeoRadarState) -> GeoRadarState:
 #       ↓
 #  [8] build_response
 #       ↓
+#  [9] post_result_to_api   ← optional webhook (request webhookUrl or env)
+#       ↓
 #      END
 # ──────────────────────────────────────────────────────────────
 
@@ -72,6 +75,7 @@ workflow.add_node("parse_responses",      parse_responses)
 workflow.add_node("aggregate_citations",  aggregate_citations)
 workflow.add_node("compute_metrics",      compute_metrics)
 workflow.add_node("build_response",       build_response)
+workflow.add_node("post_result_to_api",   post_result_to_api)
 
 workflow.set_entry_point("route_topics")
 workflow.add_conditional_edges(
@@ -90,6 +94,7 @@ workflow.add_edge("run_prompts",         "parse_responses")
 workflow.add_edge("parse_responses",     "aggregate_citations")
 workflow.add_edge("aggregate_citations", "compute_metrics")
 workflow.add_edge("compute_metrics",     "build_response")
-workflow.add_edge("build_response",      END)
+workflow.add_edge("build_response",      "post_result_to_api")
+workflow.add_edge("post_result_to_api",  END)
 
 geo_radar_app = workflow.compile(checkpointer=memory)

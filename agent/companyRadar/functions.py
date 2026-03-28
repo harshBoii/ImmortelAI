@@ -2,6 +2,8 @@ import re
 import json
 import time
 import logging
+import urllib.error
+import urllib.request
 from typing import TypedDict
 from dotenv import load_dotenv
 import os
@@ -61,6 +63,7 @@ class GeoRadarState(TypedDict):
     competitors: list    # ["Twilio", "Respond.io", ...]
     models: list         # ["gpt-4o", "claude-3.5", "gemini-1.5"]
     llm_topics: list     # optional API-provided topics override
+    webhook_url: str     # optional URL to POST the final result JSON (or set COMPANY_RADAR_RESULT_WEBHOOK_URL)
 
     # ── Pipeline stages (populated by nodes) ──────────────────
     topics: list         # expanded topic strings
@@ -74,6 +77,7 @@ class GeoRadarState(TypedDict):
     aggregated: dict     # intermediate aggregation data (consumed by compute_metrics)
     metrics: dict        # {share_of_voice, top3_rate, query_coverage, competitor_rank, topic_authority}
     result: dict         # final assembled output
+    webhook_delivery: dict  # outcome of POST to webhook (if configured)
 
     # ── Session ────────────────────────────────────────────────
     session_id: str
@@ -1020,16 +1024,9 @@ def build_response(state: GeoRadarState) -> GeoRadarState:
             acc = prompt_citations[prompt]["rank_accumulator"].setdefault(name, [])
             acc.append(rank)
 
-    company_name = str(company.get("name", "")).strip()
     revenue_by_prompt: dict[str, dict] = {}
     for p in prompts:
-        p_data = prompt_citations.get(p, {"by_model": [], "rank_accumulator": {}})
-        revenue_by_prompt[p] = _estimate_prompt_revenue(
-            prompt=p,
-            company_name=company_name,
-            by_model=p_data.get("by_model", []),
-            rank_accumulator=p_data.get("rank_accumulator", {}),
-        )
+        revenue_by_prompt[p] = _estimate_prompt_revenue(prompt=p)
 
     topic_prompt_analysis: list[dict] = []
     topics_for_analysis = sorted(set(topics + list(prompt_topic_map.values())))
@@ -1104,4 +1101,92 @@ def build_response(state: GeoRadarState) -> GeoRadarState:
         len(result["prompts"]),
         len(result["citations"]),
     )
+    return state
+
+
+def build_company_radar_api_response(state: GeoRadarState) -> dict:
+    """
+    Same JSON shape as POST /company/radar returns. Used for the HTTP response
+    and as the webhook POST body (webhook_delivery reflects state at call time).
+    """
+    result = state.get("result") or {}
+    return {
+        "topics": result.get("topics", []),
+        "prompts": result.get("prompts", []),
+        "raw_responses_with_prompt": [
+            {
+                "prompt": item.get("prompt", ""),
+                "model": item.get("model", ""),
+                "response": item.get("response", ""),
+                "error": item.get("error"),
+            }
+            for item in state.get("raw_responses", [])
+        ],
+        "citations": result.get("citations", []),
+        "metrics": result.get("metrics", {}),
+        "revenue_by_prompt": result.get("revenue_by_prompt", {}),
+        "topic_prompt_analysis": result.get("topic_prompt_analysis", []),
+        "webhook_delivery": state.get("webhook_delivery") or {},
+    }
+
+
+# ──────────────────────────────────────────────────────────────
+# Node 8 — POST RESULT TO API
+# Sends the same JSON as POST /company/radar to a configured HTTP endpoint.
+# ──────────────────────────────────────────────────────────────
+
+def post_result_to_api(state: GeoRadarState) -> GeoRadarState:
+    node = "POST_RESULT_TO_API"
+    logger.info("=" * 60)
+    logger.info("[%s] Node started", node)
+
+    url = (state.get("webhook_url") or "").strip()
+    if not url:
+        url = os.environ.get("COMPANY_RADAR_RESULT_WEBHOOK_URL", "").strip()
+
+    if not url:
+        logger.info("[%s] No webhook URL (request or env), skipping", node)
+        state["webhook_delivery"] = {"skipped": True, "reason": "no_url"}
+        logger.info("[%s] Node complete", node)
+        return state
+
+    payload = build_company_radar_api_response(state)
+    body = json.dumps(payload).encode("utf-8")
+    headers = {"Content-Type": "application/json; charset=utf-8"}
+    auth = os.environ.get("COMPANY_RADAR_RESULT_WEBHOOK_AUTH", "").strip()
+    if auth:
+        headers["Authorization"] = auth if auth.lower().startswith("bearer ") else f"Bearer {auth}"
+
+    req = urllib.request.Request(url, data=body, headers=headers, method="POST")
+
+    try:
+        with urllib.request.urlopen(req, timeout=60) as resp:
+            raw = resp.read()
+            text = raw.decode("utf-8", errors="replace") if raw else ""
+            state["webhook_delivery"] = {
+                "ok": True,
+                "status": resp.status,
+                "body_preview": text[:2000] if text else "",
+            }
+            logger.info("[%s] POST succeeded status=%s", node, resp.status)
+    except urllib.error.HTTPError as e:
+        try:
+            err_body = e.read().decode("utf-8", errors="replace")
+        except Exception:
+            err_body = ""
+        state["webhook_delivery"] = {
+            "ok": False,
+            "error": "http_error",
+            "status": e.code,
+            "body_preview": err_body[:2000],
+        }
+        logger.warning("[%s] POST failed HTTP %s", node, e.code)
+    except urllib.error.URLError as e:
+        state["webhook_delivery"] = {"ok": False, "error": "url_error", "message": str(e.reason)}
+        logger.warning("[%s] POST failed: %s", node, e.reason)
+    except OSError as e:
+        state["webhook_delivery"] = {"ok": False, "error": "os_error", "message": str(e)}
+        logger.warning("[%s] POST failed: %s", node, e)
+
+    logger.info("[%s] Node complete", node)
     return state

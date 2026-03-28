@@ -5,6 +5,7 @@ from typing import Any, Dict, List, Optional
 
 from agent import aeo_agent_app
 from agent.companySeeder import company_seeder_app
+from agent.companyRadar.functions import build_company_radar_api_response
 from agent.companyRadar.pipe import geo_radar_app
 from agent.companyBounty.pipe import company_bounty_app
 
@@ -91,6 +92,7 @@ class CompanyRadarRequest(BaseModel):
     competitors: List[str] = Field(default_factory=list)
     models: List[str] = Field(default_factory=list)
     session_id: str = "company-radar-session"
+    webhookUrl: Optional[str] = None
 
 
 @app.get("/health")
@@ -161,6 +163,7 @@ async def company_radar(payload: CompanyRadarRequest):
             "llm_topics": payload.llmTopics,
             "competitors": payload.competitors,
             "models": payload.models,
+            "webhook_url": (payload.webhookUrl or "").strip(),
             "topics": [],
             "prompts": [],
             "raw_responses": [],
@@ -168,31 +171,15 @@ async def company_radar(payload: CompanyRadarRequest):
             "aggregated": {},
             "metrics": {},
             "result": {},
+            "webhook_delivery": {},
             "session_id": payload.session_id,
         },
         config={"configurable": {"thread_id": payload.session_id}},
     )
 
     # GeoRadarState.build_response stores the final payload in state["result"]
-    result = state.get("result") or {}
-    print("result", result)
-    return {
-        "topics": result.get("topics", []),
-        "prompts": result.get("prompts", []),
-        "raw_responses_with_prompt": [
-            {
-                "prompt": item.get("prompt", ""),
-                "model": item.get("model", ""),
-                "response": item.get("response", ""),
-                "error": item.get("error"),
-            }
-            for item in state.get("raw_responses", [])
-        ],
-        "citations": result.get("citations", []),
-        "metrics": result.get("metrics", {}),
-        "revenue_by_prompt": result.get("revenue_by_prompt", {}),
-        "topic_prompt_analysis": result.get("topic_prompt_analysis", []),
-    }
+    print("result", state.get("result") or {})
+    return build_company_radar_api_response(state)
 
 
 class CompanyBountyRequest(BaseModel):
