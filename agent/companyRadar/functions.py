@@ -55,6 +55,11 @@ TOPIC_TEMPLATES = [
     "{topic} for small business",
 ]
 
+# When API does not send llmTopics, discover this many niche topics via LLM (same style as companyBounty.discover_niches).
+RADAR_LLM_TOPIC_COUNT = 3
+# Hard cap: expand_topics never produces more than this many topics (LLM path + template fallback).
+RADAR_LLM_TOPIC_MAX = 5
+
 
 # ──────────────────────────────────────────────────────────────
 # State
@@ -447,41 +452,32 @@ Return ONLY a JSON array where each item is:
 
 
 # ──────────────────────────────────────────────────────────────
-# Node 1b — EXPAND TOPICS
-# Pure template expansion, no LLM call.
+# Node 1b — EXPAND TOPICS (LLM niche discovery, companyBounty-style)
+# Requests min(RADAR_LLM_TOPIC_COUNT, RADAR_LLM_TOPIC_MAX) topics; never more than RADAR_LLM_TOPIC_MAX.
 # ──────────────────────────────────────────────────────────────
 
-def expand_topics(state: GeoRadarState) -> GeoRadarState:
-    node = "EXPAND_TOPICS"
-    logger.info("=" * 60)
-    logger.info("[%s] Node started", node)
-
+def _expand_topics_template_fallback(state: GeoRadarState) -> None:
+    """Legacy deterministic expansion into state['topics'] / state['topic_metadata']."""
     brand_entity = state["brand_entity"]
-    base_topics   = brand_entity.get("topics", [])
-    keywords      = brand_entity.get("keywords", [])
-    category      = brand_entity.get("category", "")
-
-    logger.info("[%s] Base topics: %s", node, base_topics)
-    logger.info("[%s] Keywords: %s",    node, keywords)
+    base_topics = brand_entity.get("topics", []) or []
+    keywords = brand_entity.get("keywords", []) or []
+    category = brand_entity.get("category", "")
 
     expanded: set[str] = set()
-
     for topic in base_topics:
         for template in TOPIC_TEMPLATES:
             expanded.add(template.format(topic=topic))
-
     for kw in keywords:
         expanded.add(kw)
         expanded.add(f"best {kw}")
         expanded.add(f"top {kw} tools")
-
     if category:
         expanded.add(category)
         expanded.add(f"best {category}")
         expanded.add(f"top {category} tools")
         expanded.add(f"{category} comparison")
 
-    topics = sorted(expanded)
+    topics = sorted(expanded)[:RADAR_LLM_TOPIC_MAX]
     state["topics"] = topics
     state["topic_metadata"] = {
         t: {
@@ -490,7 +486,113 @@ def expand_topics(state: GeoRadarState) -> GeoRadarState:
         }
         for t in topics
     }
-    logger.info("[%s] Node complete — %d expanded topics", node, len(topics))
+
+
+def expand_topics(state: GeoRadarState) -> GeoRadarState:
+    node = "EXPAND_TOPICS"
+    logger.info("=" * 60)
+    n = min(RADAR_LLM_TOPIC_COUNT, RADAR_LLM_TOPIC_MAX)
+    logger.info(
+        "[%s] Node started (LLM niche discovery, requesting %d topics, max %d)",
+        node,
+        n,
+        RADAR_LLM_TOPIC_MAX,
+    )
+
+    company = state["company"]
+    brand_entity = state["brand_entity"]
+    competitors = state.get("competitors", []) or []
+
+    company_name = company.get("name", "")
+    category = brand_entity.get("category", "")
+    topics_seed = brand_entity.get("topics", []) or []
+    keywords = brand_entity.get("keywords", []) or []
+
+    logger.info("[%s] Company: %s | Category: %s", node, company_name, category)
+    logger.info("[%s] Seed topics: %s | Keywords: %s", node, topics_seed, keywords)
+
+    prompt = f"""You are an AEO strategist identifying niche topics where a company can realistically become the cited authority in AI search engines (ChatGPT, Perplexity, Gemini).
+
+## Company
+- Name: {company_name}
+- Website: {company.get("website", "N/A")}
+- Category: {category}
+- Core topics: {', '.join(str(t) for t in topics_seed) or 'not specified'}
+- Keywords: {', '.join(str(k) for k in keywords) or 'not specified'}
+- Main competitors: {', '.join(str(c) for c in competitors) or 'not specified'}
+
+## Task
+Generate exactly {n} niche topics this company should target for topical authority.
+
+A good niche topic:
+- Is narrow enough to own with focused content (not a broad category)
+- Maps directly to the company's product, expertise, or a specific use case
+- Has real user search intent behind it — people actively ask questions about it
+- Has a realistic path to authority given the company's current market position
+
+## Difficulty Rating
+Assign one of: `easy` · `medium` · `hard`
+
+| Rating | Signal |
+|--------|--------|
+| easy   | Narrow, low competition; company already has relevant expertise or content |
+| medium | Moderate competition or partial coverage; achievable with focused effort |
+| hard   | Broad or heavily contested by established players; high investment required |
+
+Aim for a mix of difficulties — not all easy, not all hard.
+Also vary the type: include product-specific, use-case, and audience-specific niches.
+
+## Output
+Return ONLY a valid JSON array, no explanation:
+[
+  {{
+    "topic": "<short niche topic title>",
+    "description": "<one sentence — why this is a high-value AEO opportunity for this company and citation potential in AI search>",
+    "difficulty": "easy|medium|hard"
+  }}
+]"""
+
+    try:
+        raw = _llm_call(prompt, node, llm_client=llm_generate_prompts)
+        parsed = parse_json_from_llm(raw)
+        if not isinstance(parsed, list):
+            parsed = []
+        niches = [
+            x for x in parsed
+            if isinstance(x, dict) and str(x.get("topic", "")).strip()
+        ][:RADAR_LLM_TOPIC_MAX]
+
+        niches = niches[:n]
+
+        if len(niches) < n:
+            logger.warning("[%s] LLM returned %d/%d topics; using template fallback", node, len(niches), n)
+            _expand_topics_template_fallback(state)
+            return state
+
+        topic_list: list[str] = []
+        topic_metadata: dict[str, dict] = {}
+        for item in niches:
+            title = str(item.get("topic", "")).strip()
+            if not title:
+                continue
+            desc = str(item.get("description", "")).strip()
+            diff = str(item.get("difficulty", "")).strip().lower()
+            topic_list.append(title)
+            topic_metadata[title] = {
+                "reason": desc or "High-value niche aligned with the company's positioning and search intent.",
+                "use": (
+                    f"Priority for difficulty={diff or 'unknown'}: build authoritative pages (FAQ, guides, comparisons) "
+                    "so AI engines can cite this brand for this niche."
+                ),
+            }
+
+        state["topics"] = topic_list
+        state["topic_metadata"] = topic_metadata
+        logger.info("[%s] Node complete — %d LLM topics", node, len(topic_list))
+    except Exception as e:
+        logger.warning("[%s] LLM niche discovery failed: %s — template fallback", node, e)
+        _expand_topics_template_fallback(state)
+
     return state
 
 

@@ -22,13 +22,13 @@ def topics_source_router(state: GeoRadarState) -> str:
     """
     Route topic source:
     - use_api_topics when API sends llmTopics
-    - expand_topics otherwise
+    - expand_topics otherwise (LLM niche discovery, 3 topics; template fallback on failure)
     """
     llm_topics = state.get("llm_topics", []) or []
     if llm_topics:
         logger.info("[TOPICS_SOURCE_ROUTER] API llmTopics detected -> use_api_topics")
         return "use_api_topics"
-    logger.info("[TOPICS_SOURCE_ROUTER] No API llmTopics -> expand_topics")
+    logger.info("[TOPICS_SOURCE_ROUTER] No API llmTopics -> expand_topics (LLM)")
     return "expand_topics"
 
 
@@ -42,7 +42,7 @@ def route_topics(state: GeoRadarState) -> GeoRadarState:
 #
 #  [0] topics_source_router
 #       ├─→ [1a] use_api_topics   (if llmTopics provided)
-#       └─→ [1b] expand_topics    (fallback)
+#       └─→ [1b] expand_topics    (LLM: 3 niches, bounty-style; else template fallback)
 #                     ↓
 #  [2] analyze_company_context
 #       ↓
