@@ -134,6 +134,7 @@ async def seed_company(payload: CompanySeedRequest):
             "website_url": payload.website_url,
             "linkedin_url": payload.linkedin_url,
             "timestamp_iso": None,
+            "company_research_raw": "",
             "company": {},
             "brandEntity": {},
             "offerings": [],

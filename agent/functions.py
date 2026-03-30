@@ -34,6 +34,8 @@ llm = ChatOpenAI(model="gpt-4o-mini")
 # Guard-rail model (more accurate, used for verification steps)
 llm_strict = ChatOpenAI(model="gpt-4o")
 
+# Advanced Reasoning model (for complex tasks)
+llm_complex = ChatOpenAI(model="gpt-5.4")
 
 # ──────────────────────────── State ────────────────────────────
 

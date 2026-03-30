@@ -1,14 +1,23 @@
-import json
 from datetime import datetime, timezone
 from typing import TypedDict, Optional, List, Dict, Any
 
+from langchain_openai import ChatOpenAI
+
 from agent.functions import (
     logger,
-    llm,
+    llm_strict,
     parse_json_from_llm,
     _llm_call,
+    extract_text,
     generate_slug,
 )
+
+_search_tool = {"type": "web_search_preview"}
+
+llm_search = ChatOpenAI(
+    model="gpt-4.1",
+    use_responses_api=True,
+).bind_tools([_search_tool])
 
 
 class CompanySeedState(TypedDict):
@@ -18,6 +27,7 @@ class CompanySeedState(TypedDict):
 
     # Derived / internal
     timestamp_iso: str
+    company_research_raw: str  # LLM narrative from fetch_company_research_raw
 
     # Outputs (strict schema)
     company: Dict[str, Any]
@@ -150,35 +160,7 @@ def _normalise_company_profile(
     }
 
 
-def build_company_profile(state: CompanySeedState) -> CompanySeedState:
-    """
-    Single-node pipeline:
-    Use the LLM to research a company from its website and LinkedIn URL
-    and return a strictly structured profile.
-    """
-    node = "COMPANY_SEEDER_BUILD_PROFILE"
-    logger.info("=" * 60)
-    logger.info("[%s] Node started", node)
-
-    website_url = state["website_url"]
-    linkedin_url = state.get("linkedin_url")
-
-    timestamp_iso = state.get("timestamp_iso") or _now_midnight_iso()
-    state["timestamp_iso"] = timestamp_iso
-
-    logger.info("[%s] website_url=%s | linkedin_url=%s", node, website_url, linkedin_url)
-
-    prompt = f"""You are a company research and structuring engine.
-
-You are given the company's primary website URL and (optionally) their LinkedIn company page.
-Using your own knowledge and these URLs as anchors, infer a concise but accurate profile.
-
-WEBSITE URL:
-- {website_url}
-
-LINKEDIN URL:
-- {linkedin_url or "N/A"}
-
+_JSON_SCHEMA_INSTRUCTIONS = """
 You MUST return a SINGLE JSON object with the following exact top-level shape:
 {{
   "company": {{
@@ -247,11 +229,114 @@ STRICT RULES:
 - Include ALL fields even if some values are null or empty arrays.
 - ids and slugs should be consistent and derived from the company/offerings names.
 - Do NOT add any extra top-level keys.
-- If you are unsure about a field, set it to null (or 0 / [] as appropriate) rather than hallucinating.
+- If you are unsure about a field, set it to null (or 0 / [] as appropriate) rather than hallucinating beyond the research memo.
 - Return ONLY the JSON object, no backticks or extra text.
 """
 
-    raw = _llm_call(prompt, node, llm_client=llm)
+
+def fetch_company_research_raw(state: CompanySeedState) -> CompanySeedState:
+    """
+    Node 1: Use the LLM to produce a free-form research memo about the company
+    (website + optional LinkedIn as anchors). Output is plain text, not JSON.
+    """
+    node = "COMPANY_SEEDER_FETCH_RESEARCH"
+    logger.info("=" * 60)
+    logger.info("[%s] Node started", node)
+
+    website_url = state["website_url"]
+    linkedin_url = state.get("linkedin_url")
+
+    timestamp_iso = state.get("timestamp_iso") or _now_midnight_iso()
+    state["timestamp_iso"] = timestamp_iso
+
+    logger.info("[%s] website_url=%s | linkedin_url=%s", node, website_url, linkedin_url)
+
+    prompt = f"""You are a company research analyst.
+
+Use the URLs below as anchors (browse conceptually / use up-to-date knowledge tied to these domains where possible).
+Write a detailed **plain-text research memo** about the organization. Do NOT output JSON.
+
+Cover wherever applicable (use clear section headings in plain text):
+- Legal / brand name, aliases, one-line positioning
+- What they sell (products, services, modules) with short descriptions
+- Target customers, industries, geographies
+- Differentiators, competitors mentioned or implied
+- Company size signals, HQ location, founding year if known
+- Topics and keywords for how buyers would search for them
+- Website + contact clues (public email if discoverable; otherwise say unknown)
+- Branding notes only if factual (e.g. notable visual identity claims on the site)
+
+WEBSITE URL:
+{website_url}
+
+LINKEDIN URL:
+{linkedin_url or "N/A"}
+
+Rules:
+- Be factual; flag uncertainty in prose rather than inventing specifics.
+- No markdown code fences. No JSON. Narrative + headings only.
+"""
+
+    import time as _time
+    logger.debug("[%s] LLM search call started (%d chars prompt)", node, len(prompt))
+    t0 = _time.time()
+    try:
+        response = llm_search.invoke(prompt)
+        elapsed = _time.time() - t0
+        raw = extract_text(response)
+        if not raw:
+            content = getattr(response, "content", None) or []
+            if isinstance(content, list):
+                parts = []
+                for block in content:
+                    if isinstance(block, dict):
+                        parts.append(block.get("text") or block.get("output") or "")
+                    else:
+                        parts.append(str(block))
+                raw = " ".join(p for p in parts if p).strip()
+        logger.info("[%s] LLM search call succeeded in %.2fs (%d chars)", node, elapsed, len(raw or ""))
+    except Exception as exc:
+        elapsed = _time.time() - t0
+        logger.error("[%s] LLM search call FAILED after %.2fs: %s", node, elapsed, exc)
+        raise
+
+    state["company_research_raw"] = (raw or "").strip()
+    logger.info("[%s] Node complete — raw memo length=%d chars", node, len(state["company_research_raw"]))
+    return state
+
+
+def structure_company_profile(state: CompanySeedState) -> CompanySeedState:
+    """
+    Node 2: Map the research memo into the strict company / brandEntity / offerings JSON.
+    """
+    node = "COMPANY_SEEDER_STRUCTURE_PROFILE"
+    logger.info("=" * 60)
+    logger.info("[%s] Node started", node)
+
+    website_url = state["website_url"]
+    linkedin_url = state.get("linkedin_url")
+    research = state.get("company_research_raw") or ""
+    timestamp_iso = state.get("timestamp_iso") or _now_midnight_iso()
+    state["timestamp_iso"] = timestamp_iso
+
+    prompt = f"""You are a company research and structuring engine.
+
+You will map the research memo below into ONE strict JSON object.
+Ground every field in the memo when possible. Use the URLs for canonical website fields.
+
+ANCHOR URLS:
+- Website: {website_url}
+- LinkedIn: {linkedin_url or "N/A"}
+
+RESEARCH MEMO:
+---
+{research}
+---
+
+{_JSON_SCHEMA_INSTRUCTIONS}
+"""
+
+    raw = _llm_call(prompt, node, llm_client=llm_strict)
     parsed = parse_json_from_llm(raw)
 
     if not isinstance(parsed, dict):
