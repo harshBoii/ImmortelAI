@@ -4,6 +4,7 @@ import time
 import logging
 import urllib.error
 import urllib.request
+import urllib.parse
 from typing import TypedDict
 from dotenv import load_dotenv
 import os
@@ -36,6 +37,9 @@ if "OPENAI_API_KEY" not in os.environ:
     raise ValueError("OPENAI_API_KEY environment variable not set.")
 
 llm_parser = ChatOpenAI(model="gpt-4o-mini")
+
+# Used only for LLM-assisted prompt generation in `generate_prompts` when API provides llmTopics.
+llm_generate_prompts = ChatOpenAI(model="gpt-5.4-mini")
 
 
 # ──────────────────────────────────────────────────────────────
@@ -186,6 +190,47 @@ def _parse_ranking_regex(text: str) -> list[dict]:
         if name and len(name) > 1:
             results.append({"name": name, "rank": rank})
     return results
+
+
+def _normalize_label(s: str) -> str:
+    s = (s or "").lower()
+    s = re.sub(r"[^a-z0-9]+", " ", s).strip()
+    return re.sub(r"\s+", " ", s)
+
+
+def _domain_core(url: str) -> str:
+    try:
+        netloc = urllib.parse.urlparse(url or "").netloc.lower()
+    except Exception:
+        netloc = ""
+    netloc = netloc.split("@")[-1]  # strip userinfo
+    netloc = netloc.split(":")[0]   # strip port
+    if netloc.startswith("www."):
+        netloc = netloc[4:]
+    if not netloc:
+        return ""
+    return re.split(r"[.]", netloc)[0] or netloc
+
+
+def _title_lead(title: str) -> str:
+    t = (title or "").strip()
+    if not t:
+        return ""
+    for sep in ("|", " - ", " — ", " – ", "•", ":", "·"):
+        if sep in t:
+            t = t.split(sep)[0].strip()
+            break
+    return t
+
+
+def _extract_candidate_name_from_tavily_result(result: dict) -> str:
+    url = str(result.get("url") or "")
+    title = str(result.get("title") or "")
+    lead = _title_lead(title)
+    if lead:
+        return lead
+    core = _domain_core(url)
+    return core or url
 
 
 def _slugify(text: str) -> str:
@@ -589,13 +634,14 @@ def generate_prompts(state: GeoRadarState) -> GeoRadarState:
 Reason this topic matters: {topic_metadata.get(topic, {}).get('reason', '')}
 
 ## Your Task
-Generate 2–4 search queries a real user would type when looking for exactly what this business offers.
+Generate 2–4 search queries a real INDIAN USER would type when looking for exactly what this business offers.
 
 Each prompt must:
 - Be specific enough that generic enterprise giants (e.g. Nestle , Haldiram's , BigBasket , Britania , Aashirvaad, Amul , etc.) would NOT naturally appear in the answer
-- Reflect the business's actual size tier, geography, and niche — not the broadest version of the category
+- Reflect the business's geography and Unique Selling Proposition (USP) and the niche they are targeting
 - Read like a natural user query, not a keyword string
 - NOT mention the company name
+- The Prompt must reflect the word "Indian" in some way.
 
 Avoid:
 - Broad category queries ("best CRM software", "top marketing tools") — these surface only Fortune 500 tools
@@ -615,7 +661,7 @@ Return ONLY a valid JSON array, no explanation:
             try:
                 logger.info("[%s] Generating prompts for topic: %s", node, topic)
                 logger.debug("[%s] Built prompt for topic '%s':\n%s", node, topic, prompt_builder)
-                raw = _llm_call(prompt_builder, f"{node}:llmTopics")
+                raw = _llm_call(prompt_builder, f"{node}:llmTopics", llm_client=llm_generate_prompts)
                 generated = parse_json_from_llm(raw)
                 if isinstance(generated, list):
                     clean: list[tuple[str, str, str]] = []
@@ -723,62 +769,209 @@ Return ONLY a valid JSON array, no explanation:
 # Stores raw free-text responses.
 # ──────────────────────────────────────────────────────────────
 
-def run_prompts(state: GeoRadarState) -> GeoRadarState:
-    node = "RUN_PROMPTS"
+# def run_prompts(state: GeoRadarState) -> GeoRadarState:
+#     node = "RUN_PROMPTS"
+#     logger.info("=" * 60)
+#     logger.info("[%s] Node started", node)
+
+#     prompts     = state["prompts"]
+#     model_names = state["models"]
+#     total_calls = len(prompts) * len(model_names)
+
+#     logger.info(
+#         "[%s] %d prompts × %d models = %d LLM calls",
+#         node, len(prompts), len(model_names), total_calls,
+#     )
+#     logger.info("[%s] Prompts:\n%s", node, prompts)
+
+#     raw_responses: list[dict] = []
+
+#     for model_name in model_names:
+#         try:
+#             client = get_llm_client(model_name)
+#         except (ValueError, ImportError) as e:
+#             logger.warning("[%s] Skipping model '%s' — %s", node, model_name, e)
+#             continue
+
+#         for prompt_text in prompts:
+#             system_instruction = (
+#                 "You are a recommendation assistant.\n"
+#                 "Given a user query, respond with concise, practical guidance and include ranked company/product suggestions amongst indian local companies or global companies used widely in india.\n\n"
+#                 "Rules:\n"
+#                 "1) If the query explicitly asks for recommendations, provide a ranked list.\n"
+#                 "2) If the query is informational (does not explicitly ask for recommendations), first answer briefly, then add\n"
+#                 "   a section named 'Suggested products/companies' with ranked alternatives.\n"
+#                 "3) Wherever possible, include product + company together (e.g., '1. Product ABC - XYZ Company').\n"
+#                 "4) Keep output factual and concise.\n"
+#                 "5) Include ranking numbers in output."
+#             )
+#             full_prompt = f"{system_instruction}\n\nQuery: {prompt_text}"
+
+#             try:
+#                 raw = _llm_call(full_prompt, f"{node}:{model_name}", client)
+#                 raw_responses.append({
+#                     "prompt": prompt_text,
+#                     "model": model_name,
+#                     "response": raw,
+#                 })
+#             except Exception as e:
+#                 logger.error("[%s] %s | '%s' — %s", node, model_name, prompt_text, e)
+#                 raw_responses.append({
+#                     "prompt": prompt_text,
+#                     "model": model_name,
+#                     "response": "",
+#                     "error": str(e),
+#                 })
+
+#     state["raw_responses"] = raw_responses
+#     logger.info("[%s] Node complete — %d raw responses stored", node, len(raw_responses))
+#     return state
+
+
+# Tavily-powered alternative to the (commented) LLM run_prompts node.
+def run_web_search(state: GeoRadarState) -> GeoRadarState:
+    node = "RUN_WEB_SEARCH"
     logger.info("=" * 60)
     logger.info("[%s] Node started", node)
 
-    prompts     = state["prompts"]
-    model_names = state["models"]
-    total_calls = len(prompts) * len(model_names)
+    prompts = state.get("prompts", []) or []
+    logger.info("[%s] %d prompts → Tavily searches", node, len(prompts))
 
-    logger.info(
-        "[%s] %d prompts × %d models = %d LLM calls",
-        node, len(prompts), len(model_names), total_calls,
-    )
-    logger.info("[%s] Prompts:\n%s", node, prompts)
+    api_key = os.environ.get("TAVILY_API_KEY", "").strip()
+    if not api_key:
+        raise ValueError("TAVILY_API_KEY environment variable not set.")
+
+    try:
+        from tavily import TavilyClient  # type: ignore
+    except ImportError as exc:
+        raise ImportError("Install tavily-python: pip install tavily-python") from exc
+
+    client = TavilyClient(api_key)
 
     raw_responses: list[dict] = []
-
-    for model_name in model_names:
+    for prompt_text in prompts:
         try:
-            client = get_llm_client(model_name)
-        except (ValueError, ImportError) as e:
-            logger.warning("[%s] Skipping model '%s' — %s", node, model_name, e)
-            continue
-
-        for prompt_text in prompts:
-            system_instruction = (
-                "You are a recommendation assistant.\n"
-                "Given a user query, respond with concise, practical guidance and include ranked company/product suggestions amongst indian local companies or global companies used widely in india.\n\n"
-                "Rules:\n"
-                "1) If the query explicitly asks for recommendations, provide a ranked list.\n"
-                "2) If the query is informational (does not explicitly ask for recommendations), first answer briefly, then add\n"
-                "   a section named 'Suggested products/companies' with ranked alternatives.\n"
-                "3) Wherever possible, include product + company together (e.g., '1. Product ABC - XYZ Company').\n"
-                "4) Keep output factual and concise.\n"
-                "5) Include ranking numbers in output."
+            response = client.search(query=prompt_text, search_depth="advanced", max_results=10)
+            raw_responses.append(
+                {
+                    "prompt": prompt_text,
+                    "model": "tavily",
+                    "response": response,
+                }
             )
-            full_prompt = f"{system_instruction}\n\nQuery: {prompt_text}"
-
-            try:
-                raw = _llm_call(full_prompt, f"{node}:{model_name}", client)
-                raw_responses.append({
+        except Exception as e:
+            logger.error("[%s] Tavily search failed for '%s' — %s", node, prompt_text, e)
+            raw_responses.append(
+                {
                     "prompt": prompt_text,
-                    "model": model_name,
-                    "response": raw,
-                })
-            except Exception as e:
-                logger.error("[%s] %s | '%s' — %s", node, model_name, prompt_text, e)
-                raw_responses.append({
-                    "prompt": prompt_text,
-                    "model": model_name,
-                    "response": "",
+                    "model": "tavily",
+                    "response": {},
                     "error": str(e),
-                })
+                }
+            )
 
     state["raw_responses"] = raw_responses
     logger.info("[%s] Node complete — %d raw responses stored", node, len(raw_responses))
+    return state
+
+
+def run_web_search_synth(state: GeoRadarState) -> GeoRadarState:
+    """
+    Node between Tavily and parsing:
+    - Takes Tavily results from `state["raw_responses"]`
+    - Feeds them to the recommendation system prompt (old RUN_PROMPTS rules)
+    - Produces LLM text responses so `parse_responses` can extract ranked items.
+    """
+    node = "RUN_WEB_SEARCH_SYNTH"
+    logger.info("=" * 60)
+    logger.info("[%s] Node started", node)
+
+    raw_responses = state.get("raw_responses") or []
+    model_names = state.get("models") or []
+
+    # If caller didn't request any LLM models, keep Tavily structured results
+    # so `parse_responses` can still operate via its Tavily branch.
+    if not model_names:
+        logger.info("[%s] No llm models provided; skipping synthesis", node)
+        return state
+
+    system_instruction = (
+        "You are a recommendation assistant.\n"
+        "Given a user query, respond with concise, practical guidance and include ranked company/product suggestions amongst indian local companies or global companies used widely in india.\n\n"
+        "Rules:\n"
+        "1) If the query explicitly asks for recommendations, provide a ranked list.\n"
+        "2) If the query is informational (does not explicitly ask for recommendations), first answer briefly, then add\n"
+        "   a section named 'Suggested products/companies' with ranked alternatives.\n"
+        "3) Wherever possible, include product + company together (e.g., '1. Product ABC - XYZ Company').\n"
+        "4) Keep output factual and concise.\n"
+        "5) Include ranking numbers in output.\n"
+    )
+
+    synthesized: list[dict] = []
+    for tavily_item in raw_responses:
+        prompt_text = tavily_item.get("prompt", "")
+        tavily_response = tavily_item.get("response") or {}
+
+        # If this wasn't produced by Tavily for some reason, keep it.
+        if not isinstance(tavily_response, dict):
+            synthesized.append(tavily_item)
+            continue
+
+        results = tavily_response.get("results") or []
+        if not isinstance(results, list):
+            results = []
+
+        # Trim web context to keep prompts reasonable.
+        web_chunks: list[str] = []
+        for i, r in enumerate(results[:6], start=1):
+            if not isinstance(r, dict):
+                continue
+            url = str(r.get("url") or "")
+            title = str(r.get("title") or "")
+            content = str(r.get("content") or "")
+            content = content[:1400] + ("..." if len(content) > 1400 else "")
+            web_chunks.append(
+                f"[Result {i}]\nTitle: {title}\nURL: {url}\nContent:\n{content}\n"
+            )
+
+        web_context = "\n".join(web_chunks).strip()
+
+        for model_name in model_names:
+            try:
+                client = get_llm_client(model_name)
+            except (ValueError, ImportError) as e:
+                logger.warning("[%s] Skipping model '%s' — %s", node, model_name, e)
+                continue
+
+            # Ask model to ground recommendations in the provided web snippets.
+            full_prompt = (
+                f"{system_instruction}\n"
+                f"User query: {prompt_text}\n\n"
+                f"Web search evidence (use for grounding):\n{web_context or '[no results]'}\n"
+            )
+
+            try:
+                raw = _llm_call(full_prompt, f"{node}:{model_name}", llm_client=client)
+                synthesized.append(
+                    {
+                        "prompt": prompt_text,
+                        "model": model_name,
+                        "response": raw,
+                    }
+                )
+            except Exception as e:
+                logger.error("[%s] LLM synth failed for '%s' / '%s': %s", node, prompt_text, model_name, e)
+                synthesized.append(
+                    {
+                        "prompt": prompt_text,
+                        "model": model_name,
+                        "response": "",
+                        "error": str(e),
+                    }
+                )
+
+    state["raw_responses"] = synthesized
+    logger.info("[%s] Node complete — %d synthesized responses", node, len(synthesized))
     return state
 
 
@@ -798,31 +991,51 @@ def parse_responses(state: GeoRadarState) -> GeoRadarState:
     llm_parses = 0
 
     for item in raw_responses:
-        if not item.get("response") or item.get("error"):
-            continue
-
         prompt_text   = item["prompt"]
         model_name    = item["model"]
-        response_text = item["response"]
+        response_obj  = item.get("response")
 
-        parse_prompt = (
-            "Extract all recommended companies and/or products from the response below.\n"
-            "Assign rank by recommendation order (1 = best/first).\n"
-            "If a line contains both product and company, put product name in 'product' and company in 'name'.\n\n"
-            f"Response:\n\"\"\"\n{response_text}\n\"\"\"\n\n"
-            "Return ONLY a JSON array in this format:\n"
-            '[{"name":"Company A","product":"Product X","rank":1},{"name":"Company B","product":"","rank":2}]\n'
-            "No explanation. JSON only."
-        )
-        try:
-            raw = _llm_call(parse_prompt, f"{node}:llm_parse")
-            companies = parse_json_from_llm(raw)
-            if not isinstance(companies, list):
-                companies = []
-            llm_parses += 1
-        except Exception as e:
-            logger.error("[%s] LLM parse failed for '%s': %s", node, prompt_text, e)
-            companies = []
+        companies: list[dict] = []
+
+        # Tavily is already structured; no LLM parsing needed.
+        if model_name == "tavily" and isinstance(response_obj, dict):
+            results = response_obj.get("results") or []
+            if isinstance(results, list):
+                for idx, r in enumerate(results, start=1):
+                    if not isinstance(r, dict):
+                        continue
+                    name = _extract_candidate_name_from_tavily_result(r)
+                    companies.append(
+                        {
+                            "name": name,
+                            "product": "",
+                            "rank": idx,
+                            "url": r.get("url"),
+                            "title": r.get("title"),
+                            "score": r.get("score"),
+                        }
+                    )
+        else:
+            # Legacy: parse free-form LLM output (kept as fallback).
+            response_text = str(response_obj or "")
+            if response_text and not item.get("error"):
+                parse_prompt = (
+                    "Extract all recommended companies and/or products from the response below.\n"
+                    "Assign rank by recommendation order (1 = best/first).\n"
+                    "If a line contains both product and company, put product name in 'product' and company in 'name'.\n\n"
+                    f"Response:\n\"\"\"\n{response_text}\n\"\"\"\n\n"
+                    "Return ONLY a JSON array in this format:\n"
+                    '[{"name":"Company A","product":"Product X","rank":1},{"name":"Company B","product":"","rank":2}]\n'
+                    "No explanation. JSON only."
+                )
+                try:
+                    raw = _llm_call(parse_prompt, f"{node}:llm_parse")
+                    parsed = parse_json_from_llm(raw)
+                    companies = parsed if isinstance(parsed, list) else []
+                    llm_parses += 1
+                except Exception as e:
+                    logger.error("[%s] LLM parse failed for '%s': %s", node, prompt_text, e)
+                    companies = []
 
         citations.append({
             "prompt":    prompt_text,
@@ -850,21 +1063,26 @@ def aggregate_citations(state: GeoRadarState) -> GeoRadarState:
     logger.info("[%s] Node started", node)
 
     citations   = state["citations"]
-    company_name = state["company"]["name"].lower()
-    competitors  = [c.lower() for c in state["competitors"]]
+    company_name = _normalize_label(state["company"]["name"])
+    competitors  = [_normalize_label(c) for c in state["competitors"]]
 
     all_mentions:    list[dict] = []
     target_mentions: list[dict] = []
     prompts_with_target: set[str] = set()
 
     # Per-competitor tracking
-    competitor_stats: dict[str, dict] = {
-        c: {"mentions": 0, "ranks": [], "prompts": set()} for c in competitors
-    }
+    competitor_stats: dict[str, dict] = {c: {"mentions": 0, "ranks": [], "prompts": set()} for c in competitors}
+
+    def _matches(candidate: str, target: str) -> bool:
+        if not candidate or not target:
+            return False
+        if candidate == target:
+            return True
+        return candidate in target or target in candidate
 
     for record in citations:
         for entry in record.get("companies", []):
-            name_lower = (entry.get("name") or "").lower()
+            name_lower = _normalize_label(entry.get("name") or "")
             rank       = entry.get("rank")
 
             mention = {
@@ -876,16 +1094,21 @@ def aggregate_citations(state: GeoRadarState) -> GeoRadarState:
             all_mentions.append(mention)
 
             # Target company
-            if name_lower == company_name:
+            if _matches(name_lower, company_name):
                 target_mentions.append(mention)
                 prompts_with_target.add(record["prompt"])
 
             # Competitors
-            if name_lower in competitor_stats:
-                competitor_stats[name_lower]["mentions"] += 1
+            matched_comp = None
+            for comp in competitor_stats.keys():
+                if _matches(name_lower, comp):
+                    matched_comp = comp
+                    break
+            if matched_comp:
+                competitor_stats[matched_comp]["mentions"] += 1
                 if rank is not None:
-                    competitor_stats[name_lower]["ranks"].append(rank)
-                competitor_stats[name_lower]["prompts"].add(record["prompt"])
+                    competitor_stats[matched_comp]["ranks"].append(rank)
+                competitor_stats[matched_comp]["prompts"].add(record["prompt"])
 
     # Compute per-competitor averages and convert sets → lists for serialisation
     competitor_summary: dict[str, dict] = {}
@@ -1110,6 +1333,16 @@ def build_company_radar_api_response(state: GeoRadarState) -> dict:
     and as the webhook POST body (webhook_delivery reflects state at call time).
     """
     result = state.get("result") or {}
+    def _stringify_response(value) -> str:
+        if value is None:
+            return ""
+        if isinstance(value, str):
+            return value
+        try:
+            return json.dumps(value, ensure_ascii=False)
+        except Exception:
+            return str(value)
+
     return {
         "topics": result.get("topics", []),
         "prompts": result.get("prompts", []),
@@ -1117,8 +1350,8 @@ def build_company_radar_api_response(state: GeoRadarState) -> dict:
             {
                 "prompt": item.get("prompt", ""),
                 "model": item.get("model", ""),
-                "response": item.get("response", ""),
-                "error": item.get("error"),
+                "response": _stringify_response(item.get("response", "")),
+                "error": _stringify_response(item.get("error", "")),
             }
             for item in state.get("raw_responses", [])
         ],

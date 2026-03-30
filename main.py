@@ -179,8 +179,9 @@ async def company_radar(payload: CompanyRadarRequest):
     )
 
     # GeoRadarState.build_response stores the final payload in state["result"]
-    print("result", state.get("result") or {})
-    return build_company_radar_api_response(state)
+    res=build_company_radar_api_response(state)
+    print("Response from Company Radar :   ", res)
+    return res
 
 
 class CompanyBountyRequest(BaseModel):

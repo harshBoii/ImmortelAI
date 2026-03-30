@@ -35,6 +35,9 @@ if "OPENAI_API_KEY" not in os.environ:
 
 llm = ChatOpenAI(model="gpt-4o-mini")
 
+# Used only for LLM-assisted prompt generation in `generate_niche_prompts`.
+llm_generate_niche_prompts = ChatOpenAI(model="gpt-5.4-mini")
+
 
 # ──────────────────────────────────────────────────────────────
 # State
@@ -145,11 +148,12 @@ def _estimate_prompt_revenue(
     }
 
 
-def _llm_call(prompt: str, node_name: str) -> str:
+def _llm_call(prompt: str, node_name: str, llm_client: ChatOpenAI | None = None) -> str:
     logger.debug("[%s] LLM call started (%d chars prompt)", node_name, len(prompt))
     t0 = time.time()
+    client = llm_client or llm
     try:
-        response = llm.invoke(prompt)
+        response = client.invoke(prompt)
         raw = _extract_text(response)
         elapsed = time.time() - t0
         logger.info("[%s] LLM responded in %.2fs (%d chars)", node_name, elapsed, len(raw))
@@ -275,16 +279,22 @@ Company: {company_name} (Category: {category})
 Niche topic: {topic}
 Context: {description}
 
-Generate {PROMPTS_PER_NICHE} search prompts/questions that real users would type
+Generate {PROMPTS_PER_NICHE} search prompts/questions that real indian users would type
 into AI search engines (ChatGPT, Perplexity, Google AI Overview, etc.) related to this niche.
 
 Requirements:
-1. Each prompt must be a natural-language question or search query.
-2. Prompts should cover different angles: comparison, how-to, best-of, use-case, pros/cons.
-3. Prompts should be specific enough that a focused content page could rank for them.
-4. Prompts should give the company a realistic chance of being cited if it publishes
-   authoritative content on that niche.
-5. Do NOT include the company name in the prompts — they should be generic searches.
+Each prompt must:
+- Be specific enough that generic enterprise giants (e.g. Nestle , Haldiram's , BigBasket , Britania , Aashirvaad, Amul , etc.) would NOT naturally appear in the answer
+- Reflect the business's geography and Unique Selling Proposition (USP) and the niche they are targeting
+- Read like a natural user query, not a keyword string
+- NOT mention the company name
+- The Prompt must reflect the word "Indian" in some way.
+
+Avoid:
+- Broad category queries ("best CRM software", "top marketing tools") — these surface only Fortune 500 tools
+- Queries without geographic, audience, or niche qualifiers when the business is local/regional
+- Redundant variants of the same intent
+
 
 Return ONLY a JSON array (no extra text). Each item must include:
 {{
@@ -294,7 +304,7 @@ Return ONLY a JSON array (no extra text). Each item must include:
 }}
 """
 
-        raw = _llm_call(prompt, f"{node}:{topic}")
+        raw = _llm_call(prompt, f"{node}:{topic}", llm_client=llm_generate_niche_prompts)
         prompts_obj = _parse_json(raw)
 
         prompts_list: list[dict] = []
@@ -333,40 +343,115 @@ Return ONLY a JSON array (no extra text). Each item must include:
 # Executes prompts against requested LLM models.
 # ──────────────────────────────────────────────────────────────
 
-def run_prompts(state: BountyState) -> BountyState:
-    node = "RUN_PROMPTS"
+def run_web_search(state: BountyState) -> BountyState:
+    node = "RUN_WEB_SEARCH"
     logger.info("=" * 60)
     logger.info("[%s] Node started", node)
 
-    prompts = state.get("prompts", [])
-    model_names = state.get("models", [])
-    total_calls = len(prompts) * len(model_names)
-    logger.info("[%s] %d prompts × %d models = %d LLM calls", node, len(prompts), len(model_names), total_calls)
+    prompts = state.get("prompts", []) or []
+    logger.info("[%s] %d prompts → Tavily searches", node, len(prompts))
+
+    api_key = os.environ.get("TAVILY_API_KEY", "").strip()
+    if not api_key:
+        raise ValueError("TAVILY_API_KEY environment variable not set.")
+
+    try:
+        from tavily import TavilyClient  # type: ignore
+    except ImportError as exc:
+        raise ImportError("Install tavily-python: pip install tavily-python") from exc
+
+    client = TavilyClient(api_key)
 
     raw_responses: list[dict] = []
-    for model_name in model_names:
-        client = ChatOpenAI(model=model_name) if str(model_name).startswith("gpt") else llm
-        for prompt_text in prompts:
-            system_instruction = (
-                "You are a recommendation assistant.\n"
-                "Given a user query, respond with concise, practical guidance and include ranked company/product suggestions amongst indian local companies or global companies used widely in india.\n\n"
-                "Rules:\n"
-                "1) If the query explicitly asks for recommendations, provide a ranked list.\n"
-                "2) If the query is informational (does not explicitly ask for recommendations), first answer briefly, then add\n"
-                "   a section named 'Suggested products/companies' with ranked alternatives.\n"
-                "3) Wherever possible, include product + company together (e.g., '1. Product ABC - XYZ Company').\n"
-                "4) Keep output factual and concise.\n"
-                "5) Include ranking numbers in output."
-            )
-            full_prompt = f"{system_instruction}\n\nQuery: {prompt_text}"
-            try:
-                raw = _llm_call(full_prompt, f"{node}:{model_name}")
-                raw_responses.append({"prompt": prompt_text, "model": model_name, "response": raw})
-            except Exception as e:
-                raw_responses.append({"prompt": prompt_text, "model": model_name, "response": "", "error": str(e)})
+    for prompt_text in prompts:
+        try:
+            response = client.search(query=prompt_text, search_depth="advanced", max_results=10)
+            raw_responses.append({"prompt": prompt_text, "model": "tavily", "response": response})
+        except Exception as e:
+            logger.error("[%s] Tavily search failed for '%s' — %s", node, prompt_text, e)
+            raw_responses.append({"prompt": prompt_text, "model": "tavily", "response": "", "error": str(e)})
 
     state["raw_responses"] = raw_responses
     logger.info("[%s] Node complete — %d raw responses stored", node, len(raw_responses))
+    return state
+
+
+def run_web_search_synth(state: BountyState) -> BountyState:
+    """
+    Convert Tavily structured results into LLM recommendation text responses
+    using the same system rules as the legacy `run_prompts` node.
+    """
+    node = "RUN_WEB_SEARCH_SYNTH"
+    logger.info("=" * 60)
+    logger.info("[%s] Node started", node)
+
+    raw_responses = state.get("raw_responses", []) or []
+    model_names = state.get("models", []) or []
+
+    # If no models requested, keep Tavily responses as strings so downstream stays stable.
+    if not model_names:
+        for item in raw_responses:
+            if isinstance(item.get("response"), dict):
+                item["response"] = json.dumps(item["response"], ensure_ascii=False)
+        state["raw_responses"] = raw_responses
+        logger.info("[%s] No llm models provided; skipping synthesis", node)
+        return state
+
+    system_instruction = (
+        "You are a recommendation assistant.\n"
+        "Given a user query, respond with concise, practical guidance and include ranked company/product suggestions amongst indian local companies or global companies used widely in india.\n\n"
+        "Rules:\n"
+        "1) If the query explicitly asks for recommendations, provide a ranked list.\n"
+        "2) If the query is informational (does not explicitly ask for recommendations), first answer briefly, then add\n"
+        "   a section named 'Suggested products/companies' with ranked alternatives.\n"
+        "3) Wherever possible, include product + company together (e.g., '1. Product ABC - XYZ Company').\n"
+        "4) Keep output factual and concise.\n"
+        "5) Include ranking numbers in output.\n"
+    )
+
+    synthesized: list[dict] = []
+    for tavily_item in raw_responses:
+        prompt_text = tavily_item.get("prompt", "")
+        response_obj = tavily_item.get("response")
+        results = []
+        if isinstance(response_obj, dict):
+            results = response_obj.get("results") or []
+        if not isinstance(results, list):
+            results = []
+
+        web_chunks: list[str] = []
+        for i, r in enumerate(results[:6], start=1):
+            if not isinstance(r, dict):
+                continue
+            url = str(r.get("url") or "")
+            title = str(r.get("title") or "")
+            content = str(r.get("content") or "")
+            content = content[:1400] + ("..." if len(content) > 1400 else "")
+            web_chunks.append(f"[Result {i}]\nTitle: {title}\nURL: {url}\nContent:\n{content}\n")
+        web_context = "\n".join(web_chunks).strip()
+
+        for model_name in model_names:
+            client = ChatOpenAI(model=model_name) if str(model_name).startswith("gpt") else llm
+            full_prompt = (
+                f"{system_instruction}\n"
+                f"User query: {prompt_text}\n\n"
+                f"Web search evidence (use for grounding):\n{web_context or '[no results]'}\n"
+            )
+            try:
+                raw = _llm_call(full_prompt, f"{node}:{model_name}")
+                synthesized.append({"prompt": prompt_text, "model": model_name, "response": raw})
+            except Exception as e:
+                synthesized.append({"prompt": prompt_text, "model": model_name, "response": "", "error": str(e)})
+
+    state["raw_responses"] = synthesized
+    logger.info("[%s] Node complete — %d synthesized responses", node, len(synthesized))
+    return state
+
+
+# Back-compat: keep name used by older pipe wiring.
+def run_prompts(state: BountyState) -> BountyState:
+    state = run_web_search(state)
+    state = run_web_search_synth(state)
     return state
 
 
