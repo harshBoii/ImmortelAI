@@ -365,7 +365,7 @@ def run_web_search(state: BountyState) -> BountyState:
     raw_responses: list[dict] = []
     for prompt_text in prompts:
         try:
-            response = client.search(query=prompt_text, search_depth="advanced", max_results=10)
+            response = client.search(query=prompt_text, search_depth="advanced", max_results=5)
             raw_responses.append({"prompt": prompt_text, "model": "tavily", "response": response})
         except Exception as e:
             logger.error("[%s] Tavily search failed for '%s' — %s", node, prompt_text, e)
