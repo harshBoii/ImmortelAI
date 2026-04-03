@@ -148,35 +148,27 @@ def get_llm_client(model_name: str) -> ChatOpenAI:
 
     Supported aliases
     -----------------
-    OpenAI   : "gpt-4o", "gpt-4o-mini", "gpt-4-turbo"
-    Anthropic: "claude-3.5", "claude-3", "claude-3-haiku"
-    Gemini   : "gemini-1.5", "gemini-2.0"
+    OpenAI   
+    Anthropic
+    Gemini   
     """
     if model_name.startswith("gpt"):
-        return ChatOpenAI(model=model_name)
+        return ChatOpenAI(model=model_name, api_key=os.environ.get("OPENAI_API_KEY"))
 
     if "claude" in model_name:
         try:
             from langchain_anthropic import ChatAnthropic  # type: ignore
         except ImportError as exc:
             raise ImportError("Install langchain-anthropic: pip install langchain-anthropic") from exc
-        CLAUDE_MAP = {
-            "claude-3.5":     "claude-3-5-sonnet-20241022",
-            "claude-3":       "claude-3-opus-20240229",
-            "claude-3-haiku": "claude-3-haiku-20240307",
-        }
-        return ChatAnthropic(model=CLAUDE_MAP.get(model_name, model_name))  # type: ignore[return-value]
+        return ChatAnthropic(model=model_name, api_key=os.environ.get("ANTHROPIC_API_KEY"))  # type: ignore[return-value]
 
     if "gemini" in model_name:
         try:
             from langchain_google_genai import ChatGoogleGenerativeAI  # type: ignore
         except ImportError as exc:
             raise ImportError("Install langchain-google-genai: pip install langchain-google-genai") from exc
-        GEMINI_MAP = {
-            "gemini-1.5": "gemini-1.5-pro",
-            "gemini-2.0": "gemini-2.0-flash-exp",
-        }
-        return ChatGoogleGenerativeAI(model=GEMINI_MAP.get(model_name, model_name))  # type: ignore[return-value]
+
+        return ChatGoogleGenerativeAI(model=model_name, api_key=os.environ.get("GEMINI_API_KEY"))  # type: ignore[return-value]
 
     raise ValueError(f"Unsupported model alias: '{model_name}'")
 
@@ -990,6 +982,7 @@ def run_web_search_synth(state: GeoRadarState) -> GeoRadarState:
 
     raw_responses = state.get("raw_responses") or []
     model_names = state.get("models") or []
+    # model_names = ["gpt-5.4-nano",]
 
     # If caller didn't request any LLM models, keep Tavily structured results
     # so `parse_responses` can still operate via its Tavily branch.

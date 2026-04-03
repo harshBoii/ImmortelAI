@@ -33,7 +33,7 @@ if not logger.handlers:
 if "OPENAI_API_KEY" not in os.environ:
     raise ValueError("OPENAI_API_KEY environment variable not set.")
 
-llm = ChatOpenAI(model="gpt-4o-mini")
+llm = ChatOpenAI(model="gpt-5.4-mini")
 
 # Used only for LLM-assisted prompt generation in `generate_niche_prompts`.
 llm_generate_niche_prompts = ChatOpenAI(model="gpt-5.4-mini")
@@ -164,6 +164,36 @@ def _llm_call(prompt: str, node_name: str, llm_client: ChatOpenAI | None = None)
         logger.error("[%s] LLM FAILED after %.2fs: %s", node_name, elapsed, e)
         raise
 
+def get_llm_client(model_name: str) -> ChatOpenAI:
+    """
+    Build a LangChain chat client from a friendly model alias.
+
+    Supported aliases
+    -----------------
+    OpenAI   
+    Anthropic
+    Gemini   
+    """
+    if model_name.startswith("gpt"):
+        return ChatOpenAI(model=model_name, api_key=os.environ.get("OPENAI_API_KEY"))
+
+    if "claude" in model_name:
+        try:
+            from langchain_anthropic import ChatAnthropic  # type: ignore
+        except ImportError as exc:
+            raise ImportError("Install langchain-anthropic: pip install langchain-anthropic") from exc
+        return ChatAnthropic(model=model_name, api_key=os.environ.get("ANTHROPIC_API_KEY"))  # type: ignore[return-value]
+
+    if "gemini" in model_name:
+        try:
+            from langchain_google_genai import ChatGoogleGenerativeAI  # type: ignore
+        except ImportError as exc:
+            raise ImportError("Install langchain-google-genai: pip install langchain-google-genai") from exc
+
+        return ChatGoogleGenerativeAI(model=model_name, api_key=os.environ.get("GEMINI_API_KEY"))  # type: ignore[return-value]
+
+    raise ValueError(f"Unsupported model alias: '{model_name}'")
+
 
 # ──────────────────────────────────────────────────────────────
 # Node 1 — DISCOVER NICHES
@@ -171,7 +201,7 @@ def _llm_call(prompt: str, node_name: str, llm_client: ChatOpenAI | None = None)
 # where the company can establish topical authority for AEO.
 # ──────────────────────────────────────────────────────────────
 
-NICHE_COUNT = 5
+NICHE_COUNT = 3
 
 def discover_niches(state: BountyState) -> BountyState:
     node = "DISCOVER_NICHES"
@@ -431,7 +461,12 @@ def run_web_search_synth(state: BountyState) -> BountyState:
         web_context = "\n".join(web_chunks).strip()
 
         for model_name in model_names:
-            client = ChatOpenAI(model=model_name) if str(model_name).startswith("gpt") else llm
+            try:
+                client = get_llm_client(model_name)
+            except (ValueError, ImportError) as e:
+                logger.warning("[%s] Skipping model '%s' — %s", node, model_name, e)
+                continue
+            
             full_prompt = (
                 f"{system_instruction}\n"
                 f"User query: {prompt_text}\n\n"
@@ -465,40 +500,68 @@ def parse_responses(state: BountyState) -> BountyState:
     logger.info("=" * 60)
     logger.info("[%s] Node started", node)
 
-    raw_responses = state.get("raw_responses", [])
+    raw_responses = state["raw_responses"]
     citations: list[dict] = []
-    parsed_count = 0
+    llm_parses = 0
 
     for item in raw_responses:
-        if not item.get("response") or item.get("error"):
-            continue
-        prompt_text = item.get("prompt", "")
-        model_name = item.get("model", "")
-        response_text = item.get("response", "")
+        prompt_text   = item["prompt"]
+        model_name    = item["model"]
+        response_obj  = item.get("response")
 
-        parse_prompt = (
-            "Extract all recommended companies and/or products from the response below.\n"
-            "Assign rank by recommendation order (1 = best/first).\n"
-            "If a line contains both product and company, put product name in 'product' and company in 'name'.\n\n"
-            f"Response:\n\"\"\"\n{response_text}\n\"\"\"\n\n"
-            "Return ONLY a JSON array in this format:\n"
-            '[{"name":"Company A","product":"Product X","rank":1},{"name":"Company B","product":"","rank":2}]\n'
-            "No explanation. JSON only."
-        )
-        try:
-            raw = _llm_call(parse_prompt, f"{node}:llm_parse")
-            companies = _parse_json(raw)
-            if not isinstance(companies, list):
-                companies = []
-            parsed_count += 1
-        except Exception as e:
-            logger.error("[%s] LLM parse failed for '%s': %s", node, prompt_text, e)
-            companies = []
+        companies: list[dict] = []
 
-        citations.append({"prompt": prompt_text, "model": model_name, "companies": companies})
+        # Tavily is already structured; no LLM parsing needed.
+        if model_name == "tavily" and isinstance(response_obj, dict):
+            results = response_obj.get("results") or []
+            if isinstance(results, list):
+                for idx, r in enumerate(results, start=1):
+                    if not isinstance(r, dict):
+                        continue
+                    name = _extract_candidate_name_from_tavily_result(r)
+                    companies.append(
+                        {
+                            "name": name,
+                            "product": "",
+                            "rank": idx,
+                            "url": r.get("url"),
+                            "title": r.get("title"),
+                            "score": r.get("score"),
+                        }
+                    )
+        else:
+            # Legacy: parse free-form LLM output (kept as fallback).
+            response_text = str(response_obj or "")
+            if response_text and not item.get("error"):
+                parse_prompt = (
+                    "Extract all recommended companies and/or products from the response below.\n"
+                    "Assign rank by recommendation order (1 = best/first).\n"
+                    "If a line contains both product and company, put product name in 'product' and company in 'name'.\n\n"
+                    f"Response:\n\"\"\"\n{response_text}\n\"\"\"\n\n"
+                    "Return ONLY a JSON array in this format:\n"
+                    '[{"name":"Company A","product":"Product X","rank":1},{"name":"Company B","product":"","rank":2}]\n'
+                    "No explanation. JSON only."
+                )
+                try:
+                    raw = _llm_call(parse_prompt, f"{node}:llm_parse")
+                    parsed = parse_json_from_llm(raw)
+                    companies = parsed if isinstance(parsed, list) else []
+                    llm_parses += 1
+                except Exception as e:
+                    logger.error("[%s] LLM parse failed for '%s': %s", node, prompt_text, e)
+                    companies = []
+
+        citations.append({
+            "prompt":    prompt_text,
+            "model":     model_name,
+            "companies": companies,
+        })
 
     state["citations"] = citations
-    logger.info("[%s] Node complete — %d citation records | %d parses", node, len(citations), parsed_count)
+    logger.info(
+        "[%s] Node complete — %d records | %d LLM parses",
+        node, len(citations), llm_parses,
+    )
     return state
 
 
