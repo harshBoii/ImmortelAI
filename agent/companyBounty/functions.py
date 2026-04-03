@@ -5,6 +5,7 @@ from typing import TypedDict
 from dotenv import load_dotenv
 import os
 import re
+import urllib.parse
 
 from langchain_openai import ChatOpenAI
 
@@ -78,7 +79,6 @@ def _extract_text(response) -> str:
 
 
 def _parse_json(raw: str):
-    import re
     cleaned = re.sub(r"^```(?:json)?|```$", "", raw.strip(), flags=re.MULTILINE).strip()
     try:
         return json.loads(cleaned)
@@ -90,6 +90,112 @@ def _parse_json(raw: str):
             except json.JSONDecodeError:
                 pass
     return []
+
+
+def parse_json_from_llm(raw: str):
+    """Best-effort extraction of JSON from LLM output (alias for _parse_json)."""
+    return _parse_json(raw)
+
+
+def _title_lead(title: str) -> str:
+    t = (title or "").strip()
+    if not t:
+        return ""
+    for sep in ("|", " - ", " — ", " – ", "•", ":", "·"):
+        if sep in t:
+            t = t.split(sep)[0].strip()
+            break
+    return t
+
+
+def _domain_core(url: str) -> str:
+    try:
+        netloc = urllib.parse.urlparse(url or "").netloc.lower()
+    except Exception:
+        netloc = ""
+    netloc = netloc.split("@")[-1]
+    netloc = netloc.split(":")[0]
+    if netloc.startswith("www."):
+        netloc = netloc[4:]
+    if not netloc:
+        return ""
+    return re.split(r"[.]", netloc)[0] or netloc
+
+
+def _extract_candidate_name_from_tavily_result(result: dict) -> str:
+    url = str(result.get("url") or "")
+    title = str(result.get("title") or "")
+    lead = _title_lead(title)
+    if lead:
+        return lead
+    core = _domain_core(url)
+    return core or url
+
+
+def _tavily_results_from_response(response_obj) -> list:
+    """Tavily payload may be a dict or a JSON string (see `run_web_search_synth` no-model path)."""
+    if isinstance(response_obj, dict):
+        results = response_obj.get("results") or []
+        return results if isinstance(results, list) else []
+    if isinstance(response_obj, str):
+        s = response_obj.strip()
+        if not s:
+            return []
+        try:
+            data = json.loads(s)
+        except json.JSONDecodeError:
+            return []
+        if isinstance(data, dict):
+            results = data.get("results") or []
+            return results if isinstance(results, list) else []
+    return []
+
+
+def _unwrap_llm_company_list(parsed) -> list:
+    if isinstance(parsed, list):
+        return parsed
+    if isinstance(parsed, dict):
+        for key in ("companies", "items", "results", "data", "recommendations"):
+            v = parsed.get(key)
+            if isinstance(v, list):
+                return v
+    return []
+
+
+def _normalize_parsed_companies(parsed) -> list[dict]:
+    items = _unwrap_llm_company_list(parsed)
+    out: list[dict] = []
+    for i, x in enumerate(items, start=1):
+        if isinstance(x, str):
+            name = x.strip()
+            if name:
+                out.append({"name": name, "product": "", "rank": i})
+            continue
+        if not isinstance(x, dict):
+            continue
+        name = str(x.get("name") or x.get("company") or x.get("brand") or "").strip()
+        if not name:
+            continue
+        rank = x.get("rank")
+        try:
+            rank_i = int(rank) if rank is not None else i
+        except (TypeError, ValueError):
+            rank_i = i
+        product = str(x.get("product") or "").strip()
+        out.append({"name": name, "product": product, "rank": rank_i})
+    return out
+
+
+def _parse_ranking_regex(text: str) -> list[dict]:
+    """Extract numbered recommendations when JSON LLM parse fails or returns empty."""
+    results: list[dict] = []
+    pattern = r"(?m)^\s*(\d+)[.)]\s*\*{0,2}([^*\n:(]+?)\*{0,2}\s*(?:[:\-–—(,]|$)"
+    for match in re.finditer(pattern, text):
+        rank = int(match.group(1))
+        name = match.group(2).strip().strip("*").strip()
+        if name and len(name) > 1:
+            results.append({"name": name, "product": "", "rank": rank})
+    return results
 
 
 def _slugify(text: str) -> str:
@@ -500,43 +606,42 @@ def parse_responses(state: BountyState) -> BountyState:
     logger.info("=" * 60)
     logger.info("[%s] Node started", node)
 
-    raw_responses = state["raw_responses"]
+    raw_responses = state.get("raw_responses") or []
     citations: list[dict] = []
     llm_parses = 0
 
     for item in raw_responses:
-        prompt_text   = item["prompt"]
-        model_name    = item["model"]
-        response_obj  = item.get("response")
+        prompt_text = item.get("prompt", "")
+        model_name = str(item.get("model", ""))
+        response_obj = item.get("response")
 
         companies: list[dict] = []
 
-        # Tavily is already structured; no LLM parsing needed.
-        if model_name == "tavily" and isinstance(response_obj, dict):
-            results = response_obj.get("results") or []
-            if isinstance(results, list):
-                for idx, r in enumerate(results, start=1):
-                    if not isinstance(r, dict):
-                        continue
-                    name = _extract_candidate_name_from_tavily_result(r)
-                    companies.append(
-                        {
-                            "name": name,
-                            "product": "",
-                            "rank": idx,
-                            "url": r.get("url"),
-                            "title": r.get("title"),
-                            "score": r.get("score"),
-                        }
-                    )
+        if model_name == "tavily":
+            results = _tavily_results_from_response(response_obj)
+            for idx, r in enumerate(results, start=1):
+                if not isinstance(r, dict):
+                    continue
+                name = (_extract_candidate_name_from_tavily_result(r) or "").strip()
+                if not name:
+                    continue
+                companies.append(
+                    {
+                        "name": name,
+                        "product": "",
+                        "rank": idx,
+                        "url": r.get("url"),
+                        "title": r.get("title"),
+                        "score": r.get("score"),
+                    }
+                )
         else:
-            # Legacy: parse free-form LLM output (kept as fallback).
             response_text = str(response_obj or "")
             if response_text and not item.get("error"):
                 parse_prompt = (
                     "Extract all recommended companies and/or products from the response below.\n"
                     "Assign rank by recommendation order (1 = best/first).\n"
-                    "If a line contains both product and company, put product name in 'product' and company in 'name'.\n\n"
+                    "If a line contains both product and company, put the company name in 'name' and the product name in 'product'.\n\n"
                     f"Response:\n\"\"\"\n{response_text}\n\"\"\"\n\n"
                     "Return ONLY a JSON array in this format:\n"
                     '[{"name":"Company A","product":"Product X","rank":1},{"name":"Company B","product":"","rank":2}]\n'
@@ -545,22 +650,28 @@ def parse_responses(state: BountyState) -> BountyState:
                 try:
                     raw = _llm_call(parse_prompt, f"{node}:llm_parse")
                     parsed = parse_json_from_llm(raw)
-                    companies = parsed if isinstance(parsed, list) else []
+                    companies = _normalize_parsed_companies(parsed)
                     llm_parses += 1
+                    if not companies:
+                        companies = _parse_ranking_regex(response_text)
                 except Exception as e:
                     logger.error("[%s] LLM parse failed for '%s': %s", node, prompt_text, e)
-                    companies = []
+                    companies = _parse_ranking_regex(response_text)
 
-        citations.append({
-            "prompt":    prompt_text,
-            "model":     model_name,
-            "companies": companies,
-        })
+        citations.append(
+            {
+                "prompt": prompt_text,
+                "model": model_name,
+                "companies": companies,
+            }
+        )
 
     state["citations"] = citations
     logger.info(
         "[%s] Node complete — %d records | %d LLM parses",
-        node, len(citations), llm_parses,
+        node,
+        len(citations),
+        llm_parses,
     )
     return state
 
