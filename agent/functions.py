@@ -923,12 +923,11 @@ TASK:
 1. Identify up to 3 locations in the body where linking to a relevant cluster page
    would feel completely natural for the reader.
 2. Inject markdown links using ONLY the href values from PREBUILT INTERNAL LINKS. Match each link to the appropriate label/path.
-3. Do not force links. If a link does not fit naturally, skip it.
-4. ALWAYS add one link back to the pillar page when its href appears in PREBUILT INTERNAL LINKS.
+4. ALWAYS add one link back to the pillar page (the first one in the prebuilt links list)
 
 Return the FULL updated body markdown with links injected. Return ONLY the markdown.
 """.strip()
-            body = _llm_call(prompt, "BUILD_INTERNAL_LINKS", llm_client=llm)
+            body = _llm_call(prompt, "BUILD_INTERNAL_LINKS", llm_client=llm_complex)
 
     state.setdefault("page", {})
     state["page"]["body"] = body
