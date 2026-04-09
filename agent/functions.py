@@ -1034,6 +1034,7 @@ def publish_page(state: AeoPageState) -> AeoPageState:
     page = state["page"]
     page["status"] = "PUBLISHED"
     state["page"] = page
+    
     # TODO: actual DB write — e.g. MongoDB, Supabase, Postgres
     logger.info("[%s] ✅ Page '%s' published successfully", node, state["slug"])
     return state
