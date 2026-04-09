@@ -2,5 +2,7 @@ fastapi
 uvicorn[standard]
 langgraph
 langchain-openai
+langchain-anthropic
+langchain-google-genai
 python-dotenv
 tavily-python
