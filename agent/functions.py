@@ -921,7 +921,7 @@ BASE URL: {base_url}
 
 TASK:
 1. Identify up to 3 locations in the body where linking to a relevant cluster page
-   would feel completely natural for the reader.
+   would feel somewhat natural for the reader.
 2. Inject markdown links using ONLY the href values from PREBUILT INTERNAL LINKS. Match each link to the appropriate label/path.
 4. ALWAYS add one link back to the pillar page (the first one in the prebuilt links list)
 
