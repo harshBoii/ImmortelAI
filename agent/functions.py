@@ -29,10 +29,10 @@ if "OPENAI_API_KEY" not in os.environ:
     raise ValueError("OPENAI_API_KEY environment variable not set.")
 
 # Generation model (cheaper, used for drafting / content)
-llm = ChatOpenAI(model="gpt-4o-mini")
+llm = ChatOpenAI(model="gpt-5.4-mini")
 
 # Guard-rail model (more accurate, used for verification steps)
-llm_strict = ChatOpenAI(model="gpt-4o")
+llm_strict = ChatOpenAI(model="gpt-5.4")
 
 # Advanced Reasoning model (for complex tasks)
 llm_complex = ChatOpenAI(model="gpt-5.4")
@@ -43,6 +43,8 @@ class AeoPageState(TypedDict):
     entity: dict
     intelligence: dict
     query: str
+    topic: str
+    topic_pages: list
     page_type: str
     locale: str
     base_url: str
@@ -62,12 +64,21 @@ class AeoPageState(TypedDict):
     seo_title: str
     status: str
     rejection_reason: str
+    internal_links: list
+    duplicate_status: str
+    duplicate_reason: str
+
+    primary_kw: str
+    secondary_kws: list
+    search_intent: str
+    target_slug: str
 
     session_id: str
     existing_slugs: list
 
 
 # ──────────────────────────── Helpers ────────────────────────────
+
 
 def extract_text(response) -> str:
     content = response.content
@@ -97,6 +108,76 @@ def parse_json_from_llm(raw: str):
     return []
 
 
+def strip_markdown_fence(text: str) -> str:
+    """Remove ```markdown ... ``` or ``` ... ``` wrappers the LLM sometimes adds."""
+    cleaned = re.sub(
+        r"^```(?:markdown)?\s*\n(.*?)\n```\s*$",
+        r"\1",
+        text.strip(),
+        flags=re.DOTALL,
+    )
+    return cleaned.strip()
+
+
+def flatten_intelligence(intelligence: dict) -> dict:
+    """
+    Flatten a potentially nested intelligence dict into {source_key: dict}.
+    Keeps only dict-valued leaves (best-effort) so downstream can do rule-based extraction.
+    """
+    flat: dict = {}
+    if not isinstance(intelligence, dict):
+        return flat
+
+    for key, value in intelligence.items():
+        if isinstance(value, dict):
+            # If this dict looks like a product/intel record, keep it.
+            if any(not isinstance(v, dict) for v in value.values()):
+                flat[str(key)] = value
+                continue
+            # Otherwise, flatten one level deeper.
+            for sub_key, sub_val in value.items():
+                if isinstance(sub_val, dict):
+                    flat[f"{key}.{sub_key}"] = sub_val
+        elif isinstance(value, list):
+            # Lists of dicts: index them
+            for i, item in enumerate(value):
+                if isinstance(item, dict):
+                    flat[f"{key}[{i}]"] = item
+    return flat
+
+
+def source_is_valid(source: str, valid_sources: list[str]) -> bool:
+    return bool(source) and source in set(valid_sources)
+
+
+def extract_product_facts(flat_intelligence: dict) -> list:
+    """
+    Rule-based pre-extraction for product-type intelligence.
+    Guarantees at least basic facts exist before LLM runs.
+    """
+    facts: list[dict] = []
+    if not isinstance(flat_intelligence, dict):
+        return facts
+
+    for key, value in flat_intelligence.items():
+        if not isinstance(value, dict):
+            continue
+        # Price fact
+        price = value.get("price") or value.get("Price")
+        if price:
+            facts.append({"fact": f"{key} is priced at {price}.", "source": key})
+        # Material/fabric fact
+        desc = str(value.get("description", "") or "")
+        desc_l = desc.lower()
+        if "bamboo" in desc_l:
+            facts.append({"fact": f"{key} is made from bamboo fabric.", "source": key})
+        if "wire-free" in desc_l or "non-wired" in desc_l:
+            facts.append({"fact": f"{key} is wire-free.", "source": key})
+        if "nursing" in desc_l or "breastfeeding" in desc_l:
+            facts.append({"fact": f"{key} supports nursing or breastfeeding access.", "source": key})
+    return facts
+
+
 def generate_slug(text: str) -> str:
     slug = re.sub(r"[^a-z0-9]+", "-", text.lower()).strip("-")
     return slug or f"page-{uuid.uuid4().hex[:8]}"
@@ -121,6 +202,139 @@ def _llm_call(prompt: str, node_name: str, llm_client: ChatOpenAI | None = None)
         raise
 
 
+
+# ──────────────────────────── Node 0: PREFLIGHT ────────────────────────────
+
+def preflight(state: AeoPageState) -> AeoPageState:
+    node = "PREFLIGHT"
+    logger.info("=" * 60)
+    logger.info("[%s] Node started", node)
+
+    # Core rule: no existing cluster pages → this IS the pillar
+    topic_pages = state.get("topic_pages") or []
+    if len(topic_pages) == 0:
+        state["page_type"] = "PILLAR_PAGE"
+
+    return state
+
+def duplicate_router(state: AeoPageState) -> str:
+    if state.get("duplicate_status") == "DUPLICATE":
+        return "early_exit"   # → END with DUPLICATE status in response
+    return "draft_facts"      # SAFE or REVIEW both proceed
+
+# ──────────────────────────── Node 1: KEYWORD RESEARCH ────────────────────────────
+
+
+def keyword_research(state: AeoPageState) -> AeoPageState:
+    node = "KEYWORD_RESEARCH"
+    logger.info("=" * 60)
+    logger.info("[%s] Node started", node)
+
+    query = (state.get("query") or "").strip()
+    topic = (state.get("topic") or "").strip()
+    entity = state.get("entity") or {}
+    locale = (state.get("locale") or "en").strip()
+
+    prompt = f"""
+You are a keyword research engine.
+
+QUERY: {query}
+TOPIC: {topic}
+ENTITY: {entity.get("name", "")} — {entity.get("oneLiner", "")}
+LOCALE: {locale}
+
+Derive the best SEO keyword targeting for this query.
+
+Return JSON:
+{{
+  "primary_kw": "<the single best target keyword phrase>",
+  "secondary_kws": ["<related keyword 1>", "<related keyword 2>", ...],
+  "search_intent": "informational" | "commercial" | "navigational",
+  "target_slug": "<url-safe slug derived from primary_kw>"
+}}
+""".strip()
+
+    raw = _llm_call(prompt, node, llm_client=llm)
+    parsed = parse_json_from_llm(raw)
+    obj = parsed if isinstance(parsed, dict) else {}
+
+    primary_kw = (obj.get("primary_kw") or "").strip()
+    secondary_kws_raw = obj.get("secondary_kws")
+    secondary_kws = (
+        [str(x).strip() for x in secondary_kws_raw if str(x).strip()]
+        if isinstance(secondary_kws_raw, list)
+        else []
+    )
+    search_intent = (obj.get("search_intent") or "").strip().lower()
+    if search_intent not in {"informational", "commercial", "navigational"}:
+        search_intent = "informational"
+
+    target_slug = (obj.get("target_slug") or "").strip()
+    if not target_slug and primary_kw:
+        target_slug = generate_slug(primary_kw)
+    elif target_slug:
+        target_slug = generate_slug(target_slug)
+
+    state["primary_kw"] = primary_kw
+    state["secondary_kws"] = secondary_kws
+    state["search_intent"] = search_intent
+    state["target_slug"] = target_slug
+
+    logger.info(
+        "[%s] Node complete — primary_kw=%s | intent=%s | slug=%s",
+        node,
+        primary_kw[:80] if primary_kw else "MISSING",
+        search_intent,
+        target_slug or "MISSING",
+    )
+    return state
+
+
+def duplicate_check(state: AeoPageState) -> AeoPageState:
+    """
+    Stateless duplicate / cannibalization check.
+    Uses only existing_slugs + topic_pages (no LLM) and sets:
+      - duplicate_status: SAFE | DUPLICATE | REVIEW
+      - duplicate_reason: human-readable reason
+    """
+    existing_slugs = [str(s).strip() for s in (state.get("existing_slugs") or []) if str(s).strip()]
+    topic_pages = [str(s).strip() for s in (state.get("topic_pages") or []) if str(s).strip()]
+
+    base_slug = (state.get("target_slug") or "").strip()
+    kw_slug = generate_slug(state.get("primary_kw", "") or "")
+    if not base_slug:
+        base_slug = kw_slug
+
+    # Exact slug match against existing slugs is a hard DUPLICATE.
+    if base_slug and base_slug in existing_slugs:
+        state["duplicate_status"] = "DUPLICATE"
+        state["duplicate_reason"] = f"Exact slug already exists: {base_slug}"
+        return state
+
+    # Also treat exact match vs provided topic_pages as DUPLICATE.
+    if base_slug and base_slug in topic_pages:
+        state["duplicate_status"] = "DUPLICATE"
+        state["duplicate_reason"] = f"Exact match in topic_pages: {base_slug}"
+        return state
+
+    # Soft overlap: if the keyword slug appears inside any existing slug, flag REVIEW.
+    if kw_slug:
+        for existing in existing_slugs:
+            if kw_slug in existing or existing in kw_slug:
+                state["duplicate_status"] = "REVIEW"
+                state["duplicate_reason"] = f"Potential cannibalization vs existing slug: {existing}"
+                return state
+
+        for existing in topic_pages:
+            if kw_slug in existing or existing in kw_slug:
+                state["duplicate_status"] = "REVIEW"
+                state["duplicate_reason"] = f"Potential overlap vs topic_pages: {existing}"
+                return state
+
+    state["duplicate_status"] = "SAFE"
+    state["duplicate_reason"] = ""
+    return state
+
 # ──────────────────────────── Node 1: DRAFT FACTS ────────────────────────────
 
 def draft_facts(state: AeoPageState) -> AeoPageState:
@@ -130,18 +344,23 @@ def draft_facts(state: AeoPageState) -> AeoPageState:
     entity = state["entity"]
     intelligence = state["intelligence"]
     query = state["query"]
-    source_keys = list(intelligence.keys())
+    flat_intelligence = flatten_intelligence(intelligence)
+    source_keys = list(flat_intelligence.keys())
+    if not source_keys:
+        source_keys = list(intelligence.keys())
 
     logger.info("[%s] Entity: %s | Query: %s", node, entity.get("name"), query)
     logger.info("[%s] Intelligence source keys: %s", node, source_keys)
 
-    prompt = f"""You are a rigorous fact-extraction engine.
+    baseline_facts = extract_product_facts(flat_intelligence)
+
+    prompt = f"""You are a  fact-extraction engine.
 
 INPUT ENTITY:
 {json.dumps(entity, indent=2)}
 
 INTELLIGENCE CONTEXT (source-keyed):
-{json.dumps(intelligence, indent=2)}
+{json.dumps(flat_intelligence or intelligence, indent=2)}
 
 QUERY: {query}
 
@@ -162,16 +381,28 @@ RULES:
 - Return ONLY the JSON array, no extra text.
 """
     raw = _llm_call(prompt, node)
-    facts = parse_json_from_llm(raw)
-    logger.debug("[%s] Parsed %d total facts from LLM", node, len(facts) if isinstance(facts, list) else 0)
+    llm_facts = parse_json_from_llm(raw)
+    logger.debug("[%s] Parsed %d total facts from LLM", node, len(llm_facts) if isinstance(llm_facts, list) else 0)
 
-    valid_facts = [f for f in facts if isinstance(f, dict) and f.get("source") in source_keys]
-    dropped = len(facts) - len(valid_facts) if isinstance(facts, list) else 0
-    if dropped:
-        logger.warning("[%s] Dropped %d facts with invalid/missing source key", node, dropped)
+    all_facts = baseline_facts + [
+        f for f in (llm_facts if isinstance(llm_facts, list) else [])
+        if isinstance(f, dict) and f.get("fact") and source_is_valid(str(f.get("source", "")), source_keys)
+    ]
+
+    seen: set[str] = set()
+    valid_facts: list[dict] = []
+    for f in all_facts:
+        fact_text = str(f.get("fact", "")).strip()
+        source = str(f.get("source", "")).strip()
+        if not fact_text or not source:
+            continue
+        if fact_text in seen:
+            continue
+        seen.add(fact_text)
+        valid_facts.append({"fact": fact_text, "source": source})
 
     state["drafted_facts"] = valid_facts
-    logger.info("[%s] Node complete — %d source-attributed facts drafted", node, len(valid_facts))
+    logger.info("[%s] %d baseline + LLM facts drafted", node, len(valid_facts))
     return state
 
 
@@ -417,6 +648,9 @@ def assemble_page(state: AeoPageState) -> AeoPageState:
     logger.info("[%s] Node started", node)
     entity = state["entity"]
     query = state["query"]
+    primary_kw = (state.get("primary_kw") or "").strip()
+    secondary_kws = state.get("secondary_kws") or []
+    search_intent = (state.get("search_intent") or "").strip()
     verified_facts = state["verified_facts"]
     faq = state["faq"]
     claims = state.get("verified_claims", [])
@@ -424,11 +658,10 @@ def assemble_page(state: AeoPageState) -> AeoPageState:
     page_type = state.get("page_type", "DEFINITION")
     existing_slugs = state.get("existing_slugs", [])
 
-    # Slug based on entity name + query (session_id is NOT used for slugs)
-    entity_name = entity.get("name", "")
-    entity_prefix = generate_slug(entity_name)
-    query_slug = generate_slug(query)
-    base_slug = query_slug if query_slug.startswith(entity_prefix) else f"{entity_prefix}-{query_slug}"
+    # Slug uses keyword_research output (fallback to primary_kw/query)
+    base_slug = (state.get("target_slug") or "").strip()
+    if not base_slug:
+        base_slug = generate_slug(primary_kw or query)
     slug = base_slug
     counter = 2
     while slug in existing_slugs:
@@ -457,6 +690,9 @@ def assemble_page(state: AeoPageState) -> AeoPageState:
 
 ENTITY: {json.dumps(entity, indent=2)}
 QUERY: {query}
+PRIMARY KEYWORD: {primary_kw}
+SECONDARY KEYWORDS: {json.dumps(secondary_kws, indent=2)}
+SEARCH INTENT: {search_intent}
 PAGE TYPE: {page_type}
 VERIFIED FACTS: {json.dumps(verified_facts, indent=2)}
 VERIFIED CLAIMS: {json.dumps(claims, indent=2)}
@@ -476,6 +712,12 @@ Produce a single JSON object representing the full AEO page:
 }}
 
 RULES:
+- SEO RULES (mandatory):
+  - seoTitle MUST contain the primary keyword, max 60 chars
+  - seoDescription MUST contain the primary keyword, max 155 chars
+  - The H1 headline MUST contain the primary keyword
+  - First paragraph of body MUST naturally include the primary keyword
+  - Use secondary keywords in subheadings (H2/H3) where naturally appropriate
 - The body must be comprehensive with clear markdown headings.
 - The FAQ section must appear in the body exactly as provided.
 - If claims exist, include a comparison/use-case section.
@@ -486,10 +728,16 @@ RULES:
 - If no product is relevant, do not force product promotion.
 - Ground everything in verified facts — no invented information.
 - Return ONLY the JSON object.
+- Do NOT wrap the body in markdown code fences (no ```markdown or ```).
+- Do NOT add any text outside the JSON object.
+
 """
     raw = _llm_call(prompt, node)
     parsed = parse_json_from_llm(raw)
     page = parsed if isinstance(parsed, dict) else {}
+
+    if page.get("body"):
+        page["body"] = strip_markdown_fence(str(page["body"]))
 
     if not page:
         logger.warning("[%s] LLM returned unparseable page object — using fallback", node)
@@ -558,12 +806,34 @@ def build_json_ld(state: AeoPageState) -> AeoPageState:
         ],
     }
 
+    indian_names = [
+        "Aarav", "Vivaan", "Aditya", "Arjun", "Ishaan", "Reyansh", "Krishna", "Rohan",
+        "Ananya", "Aadhya", "Diya", "Isha", "Kavya", "Meera", "Saanvi", "Priya",
+        "Rahul", "Karan", "Vikram", "Sanjay", "Neha", "Pooja", "Sneha", "Aditi",
+    ]
+
+    author_name = (entity.get("author_name") or "").strip()
+    if not author_name:
+        # Deterministic fallback so the same page doesn't "change author" between runs
+        seed = (state.get("slug") or state.get("target_slug") or state.get("query") or "")
+        author_name = indian_names[abs(hash(seed)) % len(indian_names)] if seed else "Editorial Team"
+
+    author_type = "Person" 
+    author: dict = {
+        "@type": author_type,
+        "name": author_name,
+    }
+    if entity.get("author_url"):
+        author["url"] = entity["author_url"]
+    if entity.get("author_same_as"):
+        author["sameAs"] = entity.get("author_same_as", [])
+
     # Article representation of the page content
     json_ld["@graph"].append({
         "@type": "Article",
         "headline": page.get("headline", ""),
         "description": page.get("seoDescription", ""),
-        "author": {"@type": "Organization", "name": entity.get("name", "")},
+        "author": author,
         "datePublished": datetime.utcnow().strftime("%Y-%m-%d"),
         "about": {"@type": "Organization", "name": entity.get("name", "")},
     })
@@ -576,26 +846,20 @@ def build_json_ld(state: AeoPageState) -> AeoPageState:
         logger.info("[%s] FAQPage block added with %d items", node, len(faq_items))
 
     if claims:
-        claim_reviews = []
-        for c in claims:
-            if c.get("claim"):
-                claim_reviews.append({
-                    "@type": "ClaimReview",
-                    "claimReviewed": c["claim"],
-                    "reviewRating": {
-                        "@type": "Rating",
-                        "ratingValue": "1",
-                        "bestRating": "1",
-                        "worstRating": "1",
-                    },
-                    "author": {
-                        "@type": "Organization",
-                        "name": entity.get("name", ""),
-                    },
-                })
-        if claim_reviews:
-            json_ld["@graph"].extend(claim_reviews)
-            logger.info("[%s] %d ClaimReview blocks added", node, len(claim_reviews))
+        json_ld["@graph"].append({
+            "@type": "ItemList",
+            "name": f"{entity.get('name')} Key Differentiators",
+            "itemListElement": [
+                {
+                    "@type": "ListItem",
+                    "position": i + 1,
+                    "name": c["claim"],
+                }
+                for i, c in enumerate(claims)
+                if isinstance(c, dict) and c.get("claim")
+            ],
+        })
+        logger.info("[%s] ItemList block added with %d items", node, len([c for c in claims if isinstance(c, dict) and c.get("claim")]))
 
     state["json_ld"] = json_ld
     page["jsonLd"] = json_ld
@@ -603,6 +867,50 @@ def build_json_ld(state: AeoPageState) -> AeoPageState:
 
     logger.info("[%s] Node complete — @graph has %d entries", node, len(json_ld["@graph"]))
     logger.debug("[%s] JSON-LD:\n%s", node, json.dumps(json_ld, indent=2)[:600])
+    return state
+
+
+# ──────────────────────────── Node X: BUILD INTERNAL LINKS ────────────────────────────
+
+def build_internal_links(state: AeoPageState) -> AeoPageState:
+    topic_pages = state.get("topic_pages") or []
+    page_type = state.get("page_type", "")
+    page = state.get("page") or {}
+    body = page.get("body", "")
+    links: list = []
+
+    if page_type == "PILLAR_PAGE":
+        # Pillar links OUT to all cluster pages.
+        # topic_pages here would be empty (that's why we're pillar),
+        # but pillar body gets a placeholder ul for future retroactive updates.
+        body += "\n\n## Related Articles\n<ul id='cluster-links'></ul>"
+    else:
+        # Cluster pages: use LLM to contextually inject links to topic_pages
+        if topic_pages:
+            prompt = f"""
+You are an internal linking engine.
+
+ARTICLE BODY (markdown):
+{body}
+
+AVAILABLE CLUSTER PAGES TO LINK (titles or slugs):
+{json.dumps(topic_pages, indent=2)}
+
+BASE URL: {state['base_url']}
+
+TASK:
+1. Identify up to 3 locations in the body where linking to a relevant cluster page
+   would feel completely natural for the reader.
+2. Inject anchor tags at those locations. Do not force links.
+3. ALWAYS add one link back to the pillar page if it appears in the cluster list.
+
+Return the FULL updated body markdown with links injected. Return ONLY the markdown.
+""".strip()
+            body = _llm_call(prompt, "BUILD_INTERNAL_LINKS", llm_client=llm)
+
+    state.setdefault("page", {})
+    state["page"]["body"] = body
+    state["internal_links"] = links
     return state
 
 
@@ -646,6 +954,40 @@ Answer with ONLY "yes" or "no"."""
         logger.debug("[%s] Contradiction check answer: %s", node, answer)
         if answer.startswith("yes"):
             failures.append(f"seoTitle contradicts brand oneLiner: '{one_liner}'")
+
+    primary_kw = state.get("primary_kw", "").lower()
+    slug = state.get("slug", "")
+    body = page.get("body", "")
+    seo_desc = page.get("seoDescription", "")
+
+    if primary_kw and primary_kw not in seo_title.lower():
+        failures.append(f"primary_kw '{primary_kw}' missing from seoTitle")
+
+    if len(seo_title) > 60:
+        failures.append(f"seoTitle too long: {len(seo_title)} chars (max 60)")
+
+    if len(seo_desc) > 155:
+        failures.append(f"seoDescription too long: {len(seo_desc)} chars (max 155)")
+
+    if primary_kw and primary_kw.replace(" ", "-") not in slug:
+        failures.append(f"primary_kw not reflected in slug: {slug}")
+
+    word_count = len(body.split())
+    if word_count < 600:
+        failures.append(f"Body too short: {word_count} words (min 600)")
+
+    h1_count = body.count("\n# ")
+    if h1_count == 0 and not body.startswith("# "):
+        failures.append("No H1 found in body")
+    elif h1_count > 1:
+        failures.append(f"Multiple H1s found ({h1_count}) — only one allowed")
+
+    if "## Frequently Asked Questions" not in body:
+        failures.append("FAQ section missing from body")
+
+    # Duplicate review warning (not a hard failure, but flagged)
+    if state.get("duplicate_status") == "REVIEW":
+        failures.append(f"Possible cannibalization: {state.get('duplicate_reason')}")
 
     if failures:
         state["status"] = "DRAFT"

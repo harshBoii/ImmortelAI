@@ -4,6 +4,7 @@ from pydantic import BaseModel, Field
 from typing import Any, Dict, List, Optional
 
 from agent import aeo_agent_app
+from agent.functions import preflight
 from agent.companySeeder import company_seeder_app
 from agent.companyRadar.functions import build_company_radar_api_response
 from agent.companyRadar.pipe import geo_radar_app
@@ -38,6 +39,10 @@ class AeoRequest(BaseModel):
     entity: EntityInput
     intelligence: Dict[str, Any]
     query: str
+
+    topic: Optional[str] = None
+    topic_pages: List[str] = Field(default_factory=list)
+    
     page_type: str = "COMPARISON"
     locale: str = "en"
     base_url: str = "https://example.com/aeo"
@@ -46,6 +51,27 @@ class AeoRequest(BaseModel):
     published_at: Optional[str] = None
     existing_slugs: List[str] = Field(default_factory=list)
     session_id: str = "api-session"
+
+    # # From keyword_research ───────────────────────────
+    # primary_kw: str
+    # secondary_kws: list
+    # search_intent: str      # "informational" | "commercial" | "navigational"
+    # target_slug: str        # keyword-optimized slug from research
+
+    # # From duplicate_check ────────────────────────────
+    # duplicate_status: str   # "SAFE" | "DUPLICATE" | "REVIEW"
+    # duplicate_reason: str
+
+    # # Existing content fields ──────────────────────────────
+    # drafted_facts: list
+    # verified_facts: list
+    # faq: list
+    # claims: list
+    # verified_claims: list
+
+    # # From build_internal_links ───────────────────────
+    # internal_links: list    # list of {anchor, url, type}
+
 
 
 class CompanySeedRequest(BaseModel):
@@ -105,22 +131,30 @@ async def generate_aeo_page(payload: AeoRequest):
     """
     Run the AEO LangGraph pipeline and return the final state.
     """
+    state_in = preflight(payload.model_dump())
     state = aeo_agent_app.invoke(
-        payload.model_dump(),
+        state_in,
         config={"configurable": {"thread_id": payload.session_id}},
     )
     # Return just the assembled page & json-ld plus some diagnostics
-    return {
+
+    response = {        
         "status": state.get("status"),
         "slug": state.get("slug"),
         "seo_title": state.get("seo_title"),
         "rejection_reason": state.get("rejection_reason"),
+        "duplicate_status": state.get("duplicate_status"),
+        "duplicate_reason": state.get("duplicate_reason"),
         "page": state.get("page"),
         "drafted_facts_count": len(state.get("drafted_facts", [])),
         "verified_facts_count": len(state.get("verified_facts", [])),
         "faq_count": len(state.get("faq", [])),
         "claims_count": len(state.get("claims", [])),
+        "prompt": payload.query,
     }
+
+    print("Response from AEO Page :   ", response)
+    return response
 
 
 @app.post("/company/seed")
