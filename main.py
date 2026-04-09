@@ -42,6 +42,7 @@ class AeoRequest(BaseModel):
 
     topic: Optional[str] = None
     topic_pages: List[str] = Field(default_factory=list)
+    topic_page_names: List[str] 
     
     page_type: str = "COMPARISON"
     locale: str = "en"
@@ -52,25 +53,6 @@ class AeoRequest(BaseModel):
     existing_slugs: List[str] = Field(default_factory=list)
     session_id: str = "api-session"
 
-    # # From keyword_research ───────────────────────────
-    # primary_kw: str
-    # secondary_kws: list
-    # search_intent: str      # "informational" | "commercial" | "navigational"
-    # target_slug: str        # keyword-optimized slug from research
-
-    # # From duplicate_check ────────────────────────────
-    # duplicate_status: str   # "SAFE" | "DUPLICATE" | "REVIEW"
-    # duplicate_reason: str
-
-    # # Existing content fields ──────────────────────────────
-    # drafted_facts: list
-    # verified_facts: list
-    # faq: list
-    # claims: list
-    # verified_claims: list
-
-    # # From build_internal_links ───────────────────────
-    # internal_links: list    # list of {anchor, url, type}
 
 
 

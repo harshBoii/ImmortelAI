@@ -183,6 +183,25 @@ def generate_slug(text: str) -> str:
     return slug or f"page-{uuid.uuid4().hex[:8]}"
 
 
+def build_topic_internal_links(topic: str, topic_page_names: list, base_url: str = "") -> list[dict]:
+    """
+    Build canonical internal URLs as {topic_slug}/{page_slug} for each cluster page name/slug.
+    Returned objects are passed to the LLM so it injects these exact hrefs into markdown.
+    """
+    topic_part = generate_slug(topic or "topic")
+    base = (base_url or "").rstrip("/")
+    links: list[dict] = []
+    for raw in topic_page_names or []:
+        name = str(raw).strip()
+        if not name:
+            continue
+        page_part = generate_slug(name)
+        path = f"{topic_part}/{page_part}"
+        href = f"{base}/{path}" if base else f"/{path}"
+        links.append({"label": name, "path": path, "href": href})
+    return links
+
+
 def _llm_call(prompt: str, node_name: str, llm_client: ChatOpenAI | None = None) -> str:
     """Wraps an LLM invocation with timing and error logging."""
     client = llm_client or llm
@@ -877,7 +896,9 @@ def build_internal_links(state: AeoPageState) -> AeoPageState:
     page_type = state.get("page_type", "")
     page = state.get("page") or {}
     body = page.get("body", "")
-    links: list = []
+    topic = (state.get("topic") or "").strip()
+    base_url = (state.get("base_url") or "").strip()
+    links: list = build_topic_internal_links(topic, topic_pages, base_url)
 
     if page_type == "PILLAR_PAGE":
         # Pillar links OUT to all cluster pages.
@@ -885,24 +906,25 @@ def build_internal_links(state: AeoPageState) -> AeoPageState:
         # but pillar body gets a placeholder ul for future retroactive updates.
         body += "\n\n## Related Articles\n<ul id='cluster-links'></ul>"
     else:
-        # Cluster pages: use LLM to contextually inject links to topic_pages
-        if topic_pages:
+        # Cluster pages: use LLM to contextually inject links; must use PREBUILT_LINKS only.
+        if topic_pages and links:
             prompt = f"""
 You are an internal linking engine.
 
 ARTICLE BODY (markdown):
 {body}
 
-AVAILABLE CLUSTER PAGES TO LINK (titles or slugs):
-{json.dumps(topic_pages, indent=2)}
+PREBUILT INTERNAL LINKS (use these exact href values in markdown [text](href); do not invent URLs):
+{json.dumps(links, indent=2)}
 
-BASE URL: {state['base_url']}
+BASE URL: {base_url}
 
 TASK:
 1. Identify up to 3 locations in the body where linking to a relevant cluster page
    would feel completely natural for the reader.
-2. Inject anchor tags at those locations. Do not force links.
-3. ALWAYS add one link back to the pillar page if it appears in the cluster list.
+2. Inject markdown links using ONLY the href values from PREBUILT INTERNAL LINKS. Match each link to the appropriate label/path.
+3. Do not force links. If a link does not fit naturally, skip it.
+4. ALWAYS add one link back to the pillar page when its href appears in PREBUILT INTERNAL LINKS.
 
 Return the FULL updated body markdown with links injected. Return ONLY the markdown.
 """.strip()
