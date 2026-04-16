@@ -56,6 +56,7 @@ class AeoRequest(BaseModel):
 
 
 
+
 class CompanySeedRequest(BaseModel):
     website_url: str
     linkedin_url: Optional[str] = None
@@ -235,3 +236,8 @@ async def company_bounty(payload: CompanyBountyRequest):
 @app.get("/")
 async def root():
     return {"message": "Immortel AI FastAPI server is running"}
+
+@app.post("/webhook")
+async def telnyx_webhook(request: Request):
+    # Telnyx call control events — handle later if needed
+    return {"ok": True}
