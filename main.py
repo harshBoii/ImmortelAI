@@ -1,7 +1,9 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, BackgroundTasks, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from typing import Any, Dict, List, Optional
+from datetime import datetime
+import uuid
 
 from agent import aeo_agent_app
 from agent.functions import preflight
@@ -9,6 +11,7 @@ from agent.companySeeder import company_seeder_app
 from agent.companyRadar.functions import build_company_radar_api_response
 from agent.companyRadar.pipe import geo_radar_app
 from agent.companyBounty.pipe import company_bounty_app
+from agent.winningFormula import winning_formula_app
 
 
 app = FastAPI(
@@ -102,6 +105,83 @@ class CompanyRadarRequest(BaseModel):
     models: List[str] = Field(default_factory=list)
     session_id: str = "company-radar-session"
     webhookUrl: Optional[str] = None
+
+
+class MetaAsset(BaseModel):
+    id: str
+    asset_type: str  # VIDEO|IMAGE
+    title: str
+    filename: str
+    intelligence_status: Optional[str] = None  # READY|PROCESSING|FAILED|null
+
+
+class MetaAssetIntelligence(BaseModel):
+    id: Optional[str] = None
+    asset_id: str
+    company_id: str
+    processed_at: Optional[datetime] = None
+    language: Optional[str] = None
+    content_type: Optional[str] = None
+    duration_seconds: Optional[int] = 0
+    theme: Optional[str] = None
+    sentiment: Optional[str] = None
+    intensity_score: Optional[float] = 0
+    spiritual_elements: bool = False
+    title_primary: Optional[str] = None
+    short_summary: Optional[str] = None
+    long_description: Optional[str] = None
+    tags: List[str] = Field(default_factory=list)
+    tone: List[str] = Field(default_factory=list)
+    topics: List[str] = Field(default_factory=list)
+    target_audience: List[str] = Field(default_factory=list)
+    best_platforms: List[str] = Field(default_factory=list)
+    visual_context: List[str] = Field(default_factory=list)
+    video_genres: List[str] = Field(default_factory=list)
+    title_variants: Dict[str, Any] = Field(default_factory=dict)
+    chapters: List[Any] = Field(default_factory=list)
+    shorts_hooks: List[Any] = Field(default_factory=list)
+    clipfox_insights: List[Any] = Field(default_factory=list)
+    model_version: Optional[str] = None
+    confidence: Optional[float] = 0
+
+
+class MetaMedia(BaseModel):
+    id: str
+
+
+class MetaAdMetricsLatest(BaseModel):
+    recorded_at: Optional[datetime] = None
+    date_preset: Optional[str] = None
+    impressions: int = 0
+    clicks: int = 0
+    ctr: float = 0
+    spend: float = 0
+    cpc: Optional[float] = None
+    roas: Optional[float] = None
+
+
+class WinningFormulaItem(BaseModel):
+    asset: MetaAsset
+    asset_intelligence: Optional[MetaAssetIntelligence] = None
+    meta_media: MetaMedia
+    meta_ad_metrics_latest: MetaAdMetricsLatest
+
+
+class WinningFormulaRequest(BaseModel):
+    company_id: str
+    meta_integration_id: str
+    generated_at: datetime
+    items: List[WinningFormulaItem]
+    webhook_url: Optional[str] = None
+
+
+class WinningFormulaJobAck(BaseModel):
+    ok: bool
+    job_id: str
+    company_id: str
+    meta_integration_id: str
+    generated_at: datetime
+    input_summary: Dict[str, Any]
 
 
 @app.get("/health")
@@ -231,6 +311,58 @@ async def company_bounty(payload: CompanyBountyRequest):
 
     print("state", state)
     return state.get("result") or {}
+
+
+def _run_winning_formula_job(job_id: str, payload: WinningFormulaRequest) -> None:
+    """
+    Background runner for the winning formula LangGraph pipeline.
+    """
+    state_in = {
+        "job_id": job_id,
+        "company_id": payload.company_id,
+        "meta_integration_id": payload.meta_integration_id,
+        "generated_at": payload.generated_at.isoformat(),
+        "items": [item.model_dump() for item in payload.items],
+        "webhook_url": (payload.webhook_url or "").strip(),
+    }
+    # meta_id defaults to meta_integration_id as per plan assumptions
+    state_in["meta_id"] = payload.meta_integration_id
+
+    winning_formula_app.invoke(
+        state_in,
+        config={"configurable": {"thread_id": job_id}},
+    )
+
+
+@app.post(
+    "/winning-formula/from-meta-analyzed-assets",
+    response_model=WinningFormulaJobAck,
+)
+async def enqueue_winning_formula(
+    payload: WinningFormulaRequest,
+    background_tasks: BackgroundTasks,
+):
+    """
+    Accept Meta analyzed assets and enqueue a background job
+    that builds the winningFormula and posts to the webhook.
+    """
+    job_id = str(uuid.uuid4())
+
+    background_tasks.add_task(_run_winning_formula_job, job_id, payload)
+
+    input_summary = {
+        "items_count": len(payload.items),
+        "asset_ids": [item.asset.id for item in payload.items],
+    }
+
+    return WinningFormulaJobAck(
+        ok=True,
+        job_id=job_id,
+        company_id=payload.company_id,
+        meta_integration_id=payload.meta_integration_id,
+        generated_at=payload.generated_at,
+        input_summary=input_summary,
+    )
 
 
 @app.get("/")
