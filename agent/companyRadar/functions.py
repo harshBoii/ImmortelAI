@@ -728,7 +728,7 @@ def generate_prompts(state: GeoRadarState) -> GeoRadarState:
 Reason this topic matters: {topic_metadata.get(topic, {}).get('reason', '')}
 
 ## Your Task
-Generate 2–4 search queries a real INDIAN USER would type when looking for exactly what this business offers.
+Generate 2-3 search queries a real INDIAN USER would type when looking for exactly what this business offers.
 
 Each prompt must:
 - Be specific enough that generic enterprise giants (e.g. Nestle , Haldiram's , BigBasket , Britania , Aashirvaad, Amul , etc.) would NOT naturally appear in the answer
