@@ -11,11 +11,13 @@ from agent.functions import (
     generate_claims,
     verify_claims,
     assemble_page,
+    assemble_social,
     build_internal_links,
     build_json_ld,
     quality_gate,
     publish_page,
     flag_for_review,
+    content_format_router,
 )
 
 
@@ -43,17 +45,9 @@ def duplicate_router(state: AeoPageState) -> str:
 #   ↓
 #  [4] verify_facts
 #   ↓
-#  [5] generate_faq
-#   ↓
-#  [6] generate_claims
-#   ↓
-#  [7] verify_claims
-#   ↓
-#  [8] assemble_page
-#   ↓
-#  [9] build_internal_links
-#   ↓
-# [10] build_json_ld
+#  [5] content_format_router
+#       ├─ BLOG → generate_faq → claims → assemble_page → internal_links → json_ld
+#       └─ social → assemble_social
 #   ↓
 # [11] quality_gate  ──→  publish_page  ──→  END
 #                    └──→  flag_for_review ──→  END
@@ -69,6 +63,7 @@ workflow.add_node("generate_faq", generate_faq)
 workflow.add_node("generate_claims", generate_claims)
 workflow.add_node("verify_claims", verify_claims)
 workflow.add_node("assemble_page", assemble_page)
+workflow.add_node("assemble_social", assemble_social)
 workflow.add_node("build_internal_links", build_internal_links)
 workflow.add_node("build_json_ld", build_json_ld)
 workflow.add_node("quality_gate", quality_gate)
@@ -88,13 +83,21 @@ workflow.add_conditional_edges(
 )
 
 workflow.add_edge("draft_facts", "verify_facts")
-workflow.add_edge("verify_facts", "generate_faq")
+workflow.add_conditional_edges(
+    "verify_facts",
+    content_format_router,
+    {
+        "blog_pipeline": "generate_faq",
+        "social_pipeline": "assemble_social",
+    },
+)
 workflow.add_edge("generate_faq", "generate_claims")
 workflow.add_edge("generate_claims", "verify_claims")
 workflow.add_edge("verify_claims", "assemble_page")
 workflow.add_edge("assemble_page", "build_internal_links")
 workflow.add_edge("build_internal_links", "build_json_ld")
 workflow.add_edge("build_json_ld", "quality_gate")
+workflow.add_edge("assemble_social", "quality_gate")
 
 workflow.add_conditional_edges(
     "quality_gate",

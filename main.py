@@ -48,6 +48,7 @@ class AeoRequest(BaseModel):
     topic_page_names: List[str] 
     
     page_type: str = "COMPARISON"
+    content_type: str = "BLOG"
     locale: str = "en"
     base_url: str = "https://example.com/aeo"
     same_as_links: List[str] = Field(default_factory=list)
@@ -199,16 +200,20 @@ async def generate_aeo_page(payload: AeoRequest):
         state_in,
         config={"configurable": {"thread_id": payload.session_id}},
     )
-    # Return just the assembled page & json-ld plus some diagnostics
 
-    response = {        
+    content_type = state.get("content_type", "BLOG")
+    page = state.get("page")
+
+    response = {
+        "content_type": content_type,
         "status": state.get("status"),
+        "content": page,
         "slug": state.get("slug"),
         "seo_title": state.get("seo_title"),
         "rejection_reason": state.get("rejection_reason"),
         "duplicate_status": state.get("duplicate_status"),
         "duplicate_reason": state.get("duplicate_reason"),
-        "page": state.get("page"),
+        "page": page,
         "drafted_facts_count": len(state.get("drafted_facts", [])),
         "verified_facts_count": len(state.get("verified_facts", [])),
         "faq_count": len(state.get("faq", [])),

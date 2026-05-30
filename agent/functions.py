@@ -9,6 +9,8 @@ from dotenv import load_dotenv
 import os
 from langchain_openai import ChatOpenAI
 
+from agent.content_specs import get_content_spec, is_blog, normalize_content_type
+
 load_dotenv()
 
 # ──────────────────────────── Logger ────────────────────────────
@@ -46,6 +48,7 @@ class AeoPageState(TypedDict):
     topic: str
     topic_pages: list
     page_type: str
+    content_type: str
     locale: str
     base_url: str
     same_as_links: list
@@ -229,12 +232,23 @@ def preflight(state: AeoPageState) -> AeoPageState:
     logger.info("=" * 60)
     logger.info("[%s] Node started", node)
 
+    state["content_type"] = normalize_content_type(state.get("content_type"))
+
     # Core rule: no existing cluster pages → this IS the pillar
     topic_pages = state.get("topic_pages") or []
     if len(topic_pages) == 0:
         state["page_type"] = "PILLAR_PAGE"
 
+    logger.info("[%s] content_type=%s | page_type=%s", node, state["content_type"], state.get("page_type"))
     return state
+
+
+def content_format_router(state: AeoPageState) -> str:
+    """Route to blog or social pipeline after fact verification."""
+    if is_blog(state.get("content_type")):
+        return "blog_pipeline"
+    return "social_pipeline"
+
 
 def duplicate_router(state: AeoPageState) -> str:
     if state.get("duplicate_status") == "DUPLICATE":
@@ -490,6 +504,12 @@ def generate_faq(state: AeoPageState) -> AeoPageState:
     node = "GENERATE_FAQ"
     logger.info("=" * 60)
     logger.info("[%s] Node started", node)
+    spec = get_content_spec(state.get("content_type"))
+    if not spec.include_faq:
+        logger.info("[%s] Skipped — content_type=%s", node, spec.content_type)
+        state["faq"] = []
+        return state
+
     verified = state["verified_facts"]
     query = state["query"]
     entity = state["entity"]
@@ -539,6 +559,12 @@ def generate_claims(state: AeoPageState) -> AeoPageState:
     node = "GENERATE_CLAIMS"
     logger.info("=" * 60)
     logger.info("[%s] Node started", node)
+    spec = get_content_spec(state.get("content_type"))
+    if not spec.include_claims:
+        logger.info("[%s] Skipped — content_type=%s", node, spec.content_type)
+        state["claims"] = []
+        return state
+
     page_type = state.get("page_type", "").upper()
 
     if page_type not in ("COMPARISON", "USE_CASE"):
@@ -779,12 +805,107 @@ RULES:
     return state
 
 
+# ──────────────────────────── Node 6b: ASSEMBLE SOCIAL ────────────────────────────
+
+def assemble_social(state: AeoPageState) -> AeoPageState:
+    node = "ASSEMBLE_SOCIAL"
+    logger.info("=" * 60)
+    logger.info("[%s] Node started", node)
+
+    content_type = normalize_content_type(state.get("content_type"))
+    spec = get_content_spec(content_type)
+    entity = state["entity"]
+    query = state["query"]
+    primary_kw = (state.get("primary_kw") or "").strip()
+    verified_facts = state["verified_facts"]
+    existing_slugs = state.get("existing_slugs", [])
+
+    base_slug = (state.get("target_slug") or "").strip()
+    if not base_slug:
+        base_slug = generate_slug(primary_kw or query)
+    slug = base_slug
+    counter = 2
+    while slug in existing_slugs:
+        slug = f"{base_slug}-{counter}"
+        counter += 1
+
+    title_field = '"title": "<post title — required for Reddit, empty string otherwise>",' if content_type == "REDDIT_POST" else ""
+    hashtags_field = '"hashtags": ["<hashtag1>", ...],' if content_type == "LINKEDIN_POST" else '"hashtags": [],'
+
+    prompt = f"""You are a social content assembly engine.
+
+CONTENT TYPE: {content_type}
+ENTITY: {json.dumps(entity, indent=2)}
+QUERY: {query}
+PRIMARY KEYWORD: {primary_kw}
+TONE: {spec.tone}
+FORMAT: {spec.format_instructions}
+LENGTH: between {spec.min_chars} and {spec.max_chars} characters for the main text
+VERIFIED FACTS:
+{json.dumps(verified_facts, indent=2)}
+
+TASK:
+Produce a single JSON object for this platform:
+{{
+  "contentType": "{content_type}",
+  "text": "<main post body>",
+  {title_field}
+  {hashtags_field}
+  "tone": "{spec.tone}"
+}}
+
+RULES:
+- Ground everything in verified facts — no invented information.
+- Match the platform tone and length limits exactly.
+- For X_POST: text MUST be ≤280 characters including spaces.
+- For REDDIT_POST: include a compelling title; text should feel authentic, not promotional.
+- For LINKEDIN_POST: use short paragraphs; include 2-5 relevant hashtags.
+- Do NOT use markdown headers or code fences.
+- Return ONLY the JSON object.
+"""
+    raw = _llm_call(prompt, node)
+    parsed = parse_json_from_llm(raw)
+    page = parsed if isinstance(parsed, dict) else {}
+
+    text = str(page.get("text", "")).strip()
+    page["contentType"] = content_type
+    page["text"] = text
+    page["charCount"] = len(text)
+    page["tone"] = spec.tone
+    page["facts"] = verified_facts
+    page["entityName"] = entity.get("name", "")
+    page["query"] = query
+    page["slug"] = slug
+    if content_type == "REDDIT_POST":
+        page.setdefault("title", "")
+    if content_type == "LINKEDIN_POST":
+        page.setdefault("hashtags", [])
+    else:
+        page.setdefault("hashtags", [])
+
+    state["page"] = page
+    state["slug"] = slug
+    state["seo_title"] = page.get("title") or (text[:60] if text else "")
+    logger.info(
+        "[%s] Node complete — %s assembled (%d chars)",
+        node,
+        content_type,
+        page["charCount"],
+    )
+    return state
+
+
 # ──────────────────────────── Node 7: BUILD JSON-LD ────────────────────────────
 
 def build_json_ld(state: AeoPageState) -> AeoPageState:
     node = "BUILD_JSON_LD"
     logger.info("=" * 60)
     logger.info("[%s] Node started", node)
+    spec = get_content_spec(state.get("content_type"))
+    if not spec.include_json_ld:
+        logger.info("[%s] Skipped — content_type=%s", node, spec.content_type)
+        return state
+
     page = state.get("page", {})
     entity = state.get("entity", {})
     faq = state.get("faq", [])
@@ -892,6 +1013,11 @@ def build_json_ld(state: AeoPageState) -> AeoPageState:
 # ──────────────────────────── Node X: BUILD INTERNAL LINKS ────────────────────────────
 
 def build_internal_links(state: AeoPageState) -> AeoPageState:
+    spec = get_content_spec(state.get("content_type"))
+    if not spec.include_internal_links:
+        logger.info("[BUILD_INTERNAL_LINKS] Skipped — content_type=%s", spec.content_type)
+        return state
+
     topic_pages = state.get("topic_pages") or []
     page_type = state.get("page_type", "")
     page = state.get("page") or {}
@@ -937,21 +1063,18 @@ Return the FULL updated body markdown with links injected. Return ONLY the markd
 
 # ──────────────────────────── Node 8: QUALITY GATE ────────────────────────────
 
-def quality_gate(state: AeoPageState) -> AeoPageState:
-    node = "QUALITY_GATE"
-    logger.info("=" * 60)
-    logger.info("[%s] Node started — running quality checks", node)
+def _quality_gate_blog(state: AeoPageState, node: str) -> list[str]:
     page = state.get("page", {})
     entity = state.get("entity", {})
     verified = state.get("verified_facts", [])
     faq = state.get("faq", [])
     one_liner = entity.get("oneLiner", "")
-
+    spec = get_content_spec(state.get("content_type"))
     failures: list[str] = []
 
-    logger.debug("[%s] Check: min 3 verified facts (have %d)", node, len(verified))
-    if len(verified) < 3:
-        failures.append(f"Only {len(verified)} verified facts (minimum 3)")
+    logger.debug("[%s] Check: min %d verified facts (have %d)", node, spec.min_verified_facts, len(verified))
+    if len(verified) < spec.min_verified_facts:
+        failures.append(f"Only {len(verified)} verified facts (minimum {spec.min_verified_facts})")
 
     logger.debug("[%s] Check: min 2 FAQ items (have %d)", node, len(faq))
     if len(faq) < 2:
@@ -993,9 +1116,10 @@ Answer with ONLY "yes" or "no"."""
     if primary_kw and primary_kw.replace(" ", "-") not in slug:
         failures.append(f"primary_kw not reflected in slug: {slug}")
 
+    min_words = spec.min_words or 600
     word_count = len(body.split())
-    if word_count < 600:
-        failures.append(f"Body too short: {word_count} words (min 600)")
+    if word_count < min_words:
+        failures.append(f"Body too short: {word_count} words (min {min_words})")
 
     h1_count = body.count("\n# ")
     if h1_count == 0 and not body.startswith("# "):
@@ -1006,9 +1130,65 @@ Answer with ONLY "yes" or "no"."""
     if "## Frequently Asked Questions" not in body:
         failures.append("FAQ section missing from body")
 
-    # Duplicate review warning (not a hard failure, but flagged)
     if state.get("duplicate_status") == "REVIEW":
         failures.append(f"Possible cannibalization: {state.get('duplicate_reason')}")
+
+    return failures
+
+
+def _quality_gate_social(state: AeoPageState, node: str) -> list[str]:
+    page = state.get("page", {})
+    verified = state.get("verified_facts", [])
+    content_type = normalize_content_type(state.get("content_type"))
+    spec = get_content_spec(content_type)
+    failures: list[str] = []
+
+    logger.debug("[%s] Check: min %d verified facts (have %d)", node, spec.min_verified_facts, len(verified))
+    if len(verified) < spec.min_verified_facts:
+        failures.append(f"Only {len(verified)} verified facts (minimum {spec.min_verified_facts})")
+
+    text = str(page.get("text", "")).strip()
+    if not text:
+        failures.append("Post text is missing")
+    else:
+        char_count = len(text)
+        if char_count < spec.min_chars:
+            failures.append(f"Post too short: {char_count} chars (min {spec.min_chars})")
+        if spec.max_chars and char_count > spec.max_chars:
+            failures.append(f"Post too long: {char_count} chars (max {spec.max_chars})")
+
+    if content_type == "REDDIT_POST":
+        title = str(page.get("title", "")).strip()
+        if not title:
+            failures.append("Reddit post title is missing")
+        else:
+            promo_prompt = f"""Is the following Reddit post overly promotional or salesy?
+
+Title: {title}
+Post: {text}
+
+Answer with ONLY "yes" or "no"."""
+            raw = _llm_call(promo_prompt, node)
+            if raw.strip().lower().startswith("yes"):
+                failures.append("Reddit post tone is overly promotional")
+
+    if state.get("duplicate_status") == "REVIEW":
+        failures.append(f"Possible cannibalization: {state.get('duplicate_reason')}")
+
+    return failures
+
+
+def quality_gate(state: AeoPageState) -> AeoPageState:
+    node = "QUALITY_GATE"
+    logger.info("=" * 60)
+    logger.info("[%s] Node started — running quality checks", node)
+    content_type = normalize_content_type(state.get("content_type"))
+    logger.info("[%s] content_type=%s", node, content_type)
+
+    if is_blog(content_type):
+        failures = _quality_gate_blog(state, node)
+    else:
+        failures = _quality_gate_social(state, node)
 
     if failures:
         state["status"] = "DRAFT"
