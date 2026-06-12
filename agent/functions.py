@@ -10,6 +10,14 @@ import os
 from langchain_openai import ChatOpenAI
 
 from agent.content_specs import get_content_spec, is_blog, normalize_content_type
+from agent.dna_context import (
+    format_brand_audience_block,
+    format_compliance_rules,
+    communication_tone_override,
+    normalize_dna_from_request,
+    check_compliance_deterministic,
+    check_compliance_llm,
+)
 
 load_dotenv()
 
@@ -78,6 +86,10 @@ class AeoPageState(TypedDict):
 
     session_id: str
     existing_slugs: list
+
+    communication_dna: dict | None
+    audience_dna: dict | None
+    compliance_dna: dict | None
 
 
 # ──────────────────────────── Helpers ────────────────────────────
@@ -232,6 +244,8 @@ def preflight(state: AeoPageState) -> AeoPageState:
     logger.info("=" * 60)
     logger.info("[%s] Node started", node)
 
+    normalize_dna_from_request(state)
+
     state["content_type"] = normalize_content_type(state.get("content_type"))
 
     # Core rule: no existing cluster pages → this IS the pillar
@@ -239,7 +253,15 @@ def preflight(state: AeoPageState) -> AeoPageState:
     if len(topic_pages) == 0:
         state["page_type"] = "PILLAR_PAGE"
 
-    logger.info("[%s] content_type=%s | page_type=%s", node, state["content_type"], state.get("page_type"))
+    logger.info(
+        "[%s] content_type=%s | page_type=%s | dna: comm=%s aud=%s comp=%s",
+        node,
+        state["content_type"],
+        state.get("page_type"),
+        bool(state.get("communication_dna")),
+        bool(state.get("audience_dna")),
+        bool(state.get("compliance_dna")),
+    )
     return state
 
 
@@ -268,6 +290,12 @@ def keyword_research(state: AeoPageState) -> AeoPageState:
     entity = state.get("entity") or {}
     locale = (state.get("locale") or "en").strip()
 
+    dna_block = format_brand_audience_block(
+        state.get("communication_dna"),
+        state.get("audience_dna"),
+    )
+    dna_section = f"\n\n{dna_block}" if dna_block else ""
+
     prompt = f"""
 You are a keyword research engine.
 
@@ -275,8 +303,10 @@ QUERY: {query}
 TOPIC: {topic}
 ENTITY: {entity.get("name", "")} — {entity.get("oneLiner", "")}
 LOCALE: {locale}
+{dna_section}
 
 Derive the best SEO keyword targeting for this query.
+When audience DNA is provided, align keyword phrasing with persona and technical level.
 
 Return JSON:
 {{
@@ -517,6 +547,12 @@ def generate_faq(state: AeoPageState) -> AeoPageState:
 
     logger.info("[%s] %d verified facts as input | %d offerings", node, len(verified), len(offerings))
 
+    dna_block = format_brand_audience_block(
+        state.get("communication_dna"),
+        state.get("audience_dna"),
+    )
+    dna_section = f"\n\n{dna_block}" if dna_block else ""
+
     prompt = f"""You are an FAQ generation engine for Answer-Engine-Optimised content.
 
 QUERY: {query}
@@ -524,10 +560,12 @@ ENTITY: {json.dumps(entity, indent=2)}
 OFFERINGS: {json.dumps(offerings, indent=2)}
 VERIFIED FACTS:
 {json.dumps(verified, indent=2)}
+{dna_section}
 
 TASK:
 Generate FAQ items in schema.org FAQPage format.
 Each answer MUST be derivable from the verified facts above — do NOT add new information.
+When brand/audience DNA is provided, match tone, reading level, and address audience pain points.
 
 Return a JSON array:
 [
@@ -580,6 +618,17 @@ def generate_claims(state: AeoPageState) -> AeoPageState:
     logger.info("[%s] page_type=%s | %d differentiators | %d competitors",
                 node, page_type, len(differentiators), len(competitors))
 
+    dna_block = format_brand_audience_block(
+        state.get("communication_dna"),
+        state.get("audience_dna"),
+    )
+    dna_section = f"\n\n{dna_block}" if dna_block else ""
+    compliance_dna = state.get("compliance_dna")
+    compliance_rules = format_compliance_rules(compliance_dna)
+    compliance_section = (
+        f"\nCOMPLIANCE RULES (MUST follow):\n{compliance_rules}" if compliance_rules else ""
+    )
+
     prompt = f"""You are a claims generation engine for competitive / use-case content.
 
 ENTITY: {json.dumps(entity, indent=2)}
@@ -588,10 +637,12 @@ COMPETITORS: {json.dumps(competitors, indent=2)}
 VERIFIED FACTS:
 {json.dumps(verified, indent=2)}
 PAGE TYPE: {page_type}
+{dna_section}
 
 TASK:
 Generate factual, defensible comparison or use-case claims grounded in the verified facts.
 Each claim must reference at least one differentiator or competitor.
+When audience DNA is provided, frame claims to resonate with the target persona.
 
 STRICT RULES:
 - NEVER claim that a competitor LACKS a feature unless the intelligence context explicitly states that absence.
@@ -600,6 +651,7 @@ STRICT RULES:
 - All claims must match the page type:
   - If PAGE TYPE is COMPARISON, only emit type=\"COMPARISON\" claims.
   - If PAGE TYPE is USE_CASE, only emit type=\"USE_CASE\" claims.
+{compliance_section}
 
 Return a JSON array:
 [
@@ -639,6 +691,15 @@ def verify_claims(state: AeoPageState) -> AeoPageState:
 
     logger.info("[%s] %d claims to verify against %d verified facts", node, len(claims), len(verified_facts))
 
+    compliance_dna = state.get("compliance_dna")
+    compliance_rules = format_compliance_rules(compliance_dna)
+    compliance_section = ""
+    if compliance_rules:
+        compliance_section = f"""
+COMPLIANCE RULES (claims violating these MUST be marked entailed=false):
+{compliance_rules}
+"""
+
     prompt = f"""You are a claim-verification engine. You must be STRICT.
 
 VERIFIED FACTS (ground truth):
@@ -646,11 +707,12 @@ VERIFIED FACTS (ground truth):
 
 CLAIMS TO VERIFY:
 {json.dumps(claims, indent=2)}
-
+{compliance_section}
 TASK:
 For each claim, check whether its "supporting_facts" actually entail the "claim" statement.
 A claim is valid ONLY if the supporting facts logically support it without requiring
 information beyond what is stated.
+When compliance rules are provided, also reject claims that violate any compliance rule.
 
 Return a JSON array where each element is:
 {{
@@ -731,6 +793,17 @@ def assemble_page(state: AeoPageState) -> AeoPageState:
         faq_md_lines.append(f"**Q{i}: {q}**\n{a}")
     faq_markdown = "\n\n".join(faq_md_lines)
 
+    dna_block = format_brand_audience_block(
+        state.get("communication_dna"),
+        state.get("audience_dna"),
+    )
+    dna_section = f"\n{dna_block}\n" if dna_block else ""
+    compliance_dna = state.get("compliance_dna")
+    compliance_rules = format_compliance_rules(compliance_dna)
+    compliance_section = (
+        f"\nCOMPLIANCE RULES (MUST follow):\n{compliance_rules}\n" if compliance_rules else ""
+    )
+
     prompt = f"""You are a content-assembly engine producing a final AEO page.
 
 ENTITY: {json.dumps(entity, indent=2)}
@@ -742,7 +815,7 @@ PAGE TYPE: {page_type}
 VERIFIED FACTS: {json.dumps(verified_facts, indent=2)}
 VERIFIED CLAIMS: {json.dumps(claims, indent=2)}
 PRODUCTS: {json.dumps(products, indent=2)}
-
+{dna_section}
 FAQ SECTION (stitch this verbatim into the body under a "## Frequently Asked Questions" heading):
 {faq_markdown}
 
@@ -763,6 +836,8 @@ RULES:
   - The H1 headline MUST contain the primary keyword
   - First paragraph of body MUST naturally include the primary keyword
   - Use secondary keywords in subheadings (H2/H3) where naturally appropriate
+- When brand communication DNA is provided, follow tone, voice, headline style, CTA style, intro/story/conclusion patterns, and avoid avoided messaging themes.
+- When audience DNA is provided, write for the target persona and address motivations/objections appropriately.
 - The body must be comprehensive with clear markdown headings.
 - The FAQ section must appear in the body exactly as provided.
 - If claims exist, include a comparison/use-case section.
@@ -772,7 +847,7 @@ RULES:
 - For every recommended product, explain why it fits in 1-2 lines grounded in verified facts; do not overhype.
 - If no product is relevant, do not force product promotion.
 - Ground everything in verified facts — no invented information.
-- Return ONLY the JSON object.
+{compliance_section}- Return ONLY the JSON object.
 - Do NOT wrap the body in markdown code fences (no ```markdown or ```).
 - Do NOT add any text outside the JSON object.
 
@@ -831,6 +906,17 @@ def assemble_social(state: AeoPageState) -> AeoPageState:
 
     title_field = '"title": "<post title — required for Reddit, empty string otherwise>",' if content_type == "REDDIT_POST" else ""
     hashtags_field = '"hashtags": ["<hashtag1>", ...],' if content_type == "LINKEDIN_POST" else '"hashtags": [],'
+    effective_tone = communication_tone_override(state.get("communication_dna"), spec.tone)
+    dna_block = format_brand_audience_block(
+        state.get("communication_dna"),
+        state.get("audience_dna"),
+    )
+    dna_section = f"\n{dna_block}\n" if dna_block else ""
+    compliance_dna = state.get("compliance_dna")
+    compliance_rules = format_compliance_rules(compliance_dna)
+    compliance_section = (
+        f"\nCOMPLIANCE RULES (MUST follow):\n{compliance_rules}\n" if compliance_rules else ""
+    )
 
     prompt = f"""You are a social content assembly engine.
 
@@ -838,12 +924,12 @@ CONTENT TYPE: {content_type}
 ENTITY: {json.dumps(entity, indent=2)}
 QUERY: {query}
 PRIMARY KEYWORD: {primary_kw}
-TONE: {spec.tone}
+TONE: {effective_tone}
 FORMAT: {spec.format_instructions}
 LENGTH: between {spec.min_chars} and {spec.max_chars} characters for the main text
 VERIFIED FACTS:
 {json.dumps(verified_facts, indent=2)}
-
+{dna_section}
 TASK:
 Produce a single JSON object for this platform:
 {{
@@ -851,16 +937,17 @@ Produce a single JSON object for this platform:
   "text": "<main post body>",
   {title_field}
   {hashtags_field}
-  "tone": "{spec.tone}"
+  "tone": "{effective_tone}"
 }}
 
 RULES:
 - Ground everything in verified facts — no invented information.
 - Match the platform tone and length limits exactly.
+- When brand/audience DNA is provided, follow communication and audience guidelines.
 - For X_POST: text MUST be ≤280 characters including spaces.
 - For REDDIT_POST: include a compelling title; text should feel authentic, not promotional.
 - For LINKEDIN_POST: use short paragraphs; include 2-5 relevant hashtags.
-- Do NOT use markdown headers or code fences.
+{compliance_section}- Do NOT use markdown headers or code fences.
 - Return ONLY the JSON object.
 """
     raw = _llm_call(prompt, node)
@@ -871,7 +958,7 @@ RULES:
     page["contentType"] = content_type
     page["text"] = text
     page["charCount"] = len(text)
-    page["tone"] = spec.tone
+    page["tone"] = effective_tone
     page["facts"] = verified_facts
     page["entityName"] = entity.get("name", "")
     page["query"] = query
@@ -1063,6 +1150,39 @@ Return the FULL updated body markdown with links injected. Return ONLY the markd
 
 # ──────────────────────────── Node 8: QUALITY GATE ────────────────────────────
 
+def _compliance_quality_checks(state: AeoPageState, node: str) -> list[str]:
+    compliance_dna = state.get("compliance_dna")
+    if not compliance_dna:
+        return []
+
+    page = state.get("page") or {}
+    content_type = normalize_content_type(state.get("content_type"))
+    if is_blog(content_type):
+        content = str(page.get("body", ""))
+        if page.get("seoTitle"):
+            content = f"{page.get('seoTitle')}\n{page.get('seoDescription', '')}\n{content}"
+    else:
+        title = str(page.get("title", ""))
+        text = str(page.get("text", ""))
+        content = f"{title}\n{text}".strip()
+
+    claims = state.get("verified_claims") or []
+    failures: list[str] = []
+
+    failures.extend(check_compliance_deterministic(content, compliance_dna))
+    failures.extend(
+        check_compliance_llm(
+            content,
+            claims,
+            compliance_dna,
+            node,
+            lambda prompt, n: _llm_call(prompt, n, llm_client=llm_strict),
+            parse_json_from_llm,
+        )
+    )
+    return failures
+
+
 def _quality_gate_blog(state: AeoPageState, node: str) -> list[str]:
     page = state.get("page", {})
     entity = state.get("entity", {})
@@ -1189,6 +1309,8 @@ def quality_gate(state: AeoPageState) -> AeoPageState:
         failures = _quality_gate_blog(state, node)
     else:
         failures = _quality_gate_social(state, node)
+
+    failures.extend(_compliance_quality_checks(state, node))
 
     if failures:
         state["status"] = "DRAFT"

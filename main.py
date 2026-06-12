@@ -38,6 +38,56 @@ class EntityInput(BaseModel):
     competitors: List[Any] = Field(default_factory=list)
 
 
+class CommunicationDnaInput(BaseModel):
+    tone: Optional[str] = None
+    voice: Optional[str] = None
+    brandPersonality: Optional[str] = None
+    emotionalIntensity: Optional[str] = None
+    headlineStyle: Optional[str] = None
+    ctaStyle: Optional[str] = None
+    urgencyLevel: Optional[str] = None
+    socialProofUsage: Optional[str] = None
+    primaryMessagingTheme: Optional[str] = None
+    secondaryMessagingTheme: Optional[str] = None
+    avoidedMessagingTheme: Optional[str] = None
+    readingLevel: Optional[str] = None
+    avgSentenceLength: Optional[int] = None
+    paragraphDensity: Optional[str] = None
+    activeVoicePercentage: Optional[int] = None
+    positioningStatement: Optional[str] = None
+    valuePropositionStyle: Optional[str] = None
+    differentiationStrategy: Optional[str] = None
+    introPattern: Optional[str] = None
+    storytellingPattern: Optional[str] = None
+    conclusionPattern: Optional[str] = None
+
+
+class AudienceDnaInput(BaseModel):
+    primaryPersona: Optional[str] = None
+    secondaryPersona: Optional[str] = None
+    industryFocus: Optional[str] = None
+    technicalLevel: Optional[str] = None
+    domainKnowledgeLevel: Optional[str] = None
+    audiencePainPoints: List[str] = Field(default_factory=list)
+    audienceMotivations: List[str] = Field(default_factory=list)
+    audienceObjections: List[str] = Field(default_factory=list)
+
+
+class ComplianceDnaInput(BaseModel):
+    bannedAbsoluteClaims: List[str] = Field(default_factory=list)
+    bannedComparativeClaims: List[str] = Field(default_factory=list)
+    allowedClaims: List[str] = Field(default_factory=list)
+    bannedWords: List[str] = Field(default_factory=list)
+    allowedWords: List[str] = Field(default_factory=list)
+    fearBasedMarketingAllowed: bool = False
+    sensationalLanguageAllowed: bool = False
+    politicalContentAllowed: bool = False
+    religiousContentAllowed: bool = False
+    controversialTopicsAllowed: bool = False
+    sourceFileUrl: Optional[str] = None
+    sourceFileName: Optional[str] = None
+
+
 class AeoRequest(BaseModel):
     entity: EntityInput
     intelligence: Dict[str, Any]
@@ -56,6 +106,10 @@ class AeoRequest(BaseModel):
     published_at: Optional[str] = None
     existing_slugs: List[str] = Field(default_factory=list)
     session_id: str = "api-session"
+
+    communicationDna: Optional[CommunicationDnaInput] = None
+    audienceDna: Optional[AudienceDnaInput] = None
+    complianceDna: Optional[ComplianceDnaInput] = None
 
 
 
@@ -219,6 +273,11 @@ async def generate_aeo_page(payload: AeoRequest):
         "faq_count": len(state.get("faq", [])),
         "claims_count": len(state.get("claims", [])),
         "prompt": payload.query,
+        "dna_applied": {
+            "communication": payload.communicationDna is not None,
+            "audience": payload.audienceDna is not None,
+            "compliance": payload.complianceDna is not None,
+        },
     }
 
     print("Response from AEO Page :   ", response)

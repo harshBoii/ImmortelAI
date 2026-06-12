@@ -97,9 +97,38 @@ test_input = {
     'session_id': f'test-run-{CONTENT_TYPE.lower()}'
 }
 
+# Optional DNA fixture — set USE_DNA_FIXTURE=1 to exercise brand/audience/compliance context
+if os.environ.get('USE_DNA_FIXTURE') == '1':
+    test_input['communicationDna'] = {
+        'tone': 'Warm and trustworthy',
+        'voice': 'Knowledgeable home-chef',
+        'brandPersonality': 'Authentic, health-conscious',
+        'headlineStyle': 'Benefit-led questions',
+        'ctaStyle': 'Soft invitation',
+        'readingLevel': 'Grade 8',
+        'primaryMessagingTheme': 'Homemade quality without compromise on health',
+        'avoidedMessagingTheme': 'Aggressive discounting or fear-based health scares',
+    }
+    test_input['audienceDna'] = {
+        'primaryPersona': 'Health-conscious urban parents',
+        'industryFocus': 'Packaged snacks and FMCG',
+        'technicalLevel': 'General consumer',
+        'audiencePainPoints': ['Oily packaged snacks', 'Preservatives in kids food'],
+        'audienceMotivations': ['Authentic taste', 'Better ingredients for family'],
+        'audienceObjections': ['Homemade brands may lack hygiene standards'],
+    }
+    test_input['complianceDna'] = {
+        'bannedAbsoluteClaims': ['cures disease', 'guaranteed weight loss'],
+        'bannedComparativeClaims': ['healthier than all competitors'],
+        'bannedWords': ['miracle', 'cure-all'],
+        'fearBasedMarketingAllowed': False,
+        'sensationalLanguageAllowed': False,
+    }
+
 print(f'▸ Invoking pipeline with content_type={CONTENT_TYPE}')
 print('▸ Entity:', test_input['entity']['name'])
 print('▸ Query: ', test_input['query'])
+print('▸ DNA fixture:', 'enabled' if os.environ.get('USE_DNA_FIXTURE') == '1' else 'disabled')
 print()
 
 state_in = preflight(test_input)
